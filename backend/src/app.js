@@ -40,7 +40,14 @@ app.use(mongoSanitize());
 app.use(hpp());
 app.use(apiLimiter);
 
-app.use(express.static(path.join(__dirname, '../../frontend')));
+// Disable caching for HTML files so role-switching on login page always works
+app.use(express.static(path.join(__dirname, '../../frontend'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
 client.collectDefaultMetrics();

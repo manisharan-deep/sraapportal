@@ -1,3 +1,23 @@
+// Apply role from URL query param immediately before anything else runs
+(function applyRoleFromUrl() {
+  const roleFromUrl = new URLSearchParams(window.location.search).get('role');
+  if (roleFromUrl && ['STUDENT', 'STAFF', 'ADMIN'].includes(roleFromUrl)) {
+    const niceRole = roleFromUrl.charAt(0) + roleFromUrl.slice(1).toLowerCase();
+    const roleInput = document.getElementById('role');
+    const loginTitle = document.getElementById('loginTitle');
+    const identifierLabel = document.getElementById('identifierLabel');
+    const identifierInput = document.getElementById('identifier');
+    if (roleInput) roleInput.value = roleFromUrl;
+    if (loginTitle) loginTitle.textContent = niceRole + ' Login';
+    document.title = niceRole + ' Login - SR University';
+    if (identifierLabel) identifierLabel.textContent = roleFromUrl === 'STUDENT' ? 'Enrollment Number' : 'Username';
+    if (identifierInput) identifierInput.placeholder = roleFromUrl === 'STUDENT' ? 'Enter Enrollment Number' : 'Enter Username';
+    document.querySelectorAll('[data-role-btn]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-role-btn') === roleFromUrl);
+    });
+  }
+})();
+
 const roleSelect = document.getElementById('role');
 const identifierLabel = document.getElementById('identifierLabel');
 const captchaCanvas = document.getElementById('captchaCanvas');
