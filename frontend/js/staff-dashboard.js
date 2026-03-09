@@ -22,7 +22,6 @@ function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${name}`));
   if (name === 'students') loadAllStudents();
-  if (name === 'attendance') initAttendanceTab();
   if (name === 'announcements') loadRecentAnnouncements();
 }
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -38,8 +37,8 @@ document.getElementById('ann-scope').addEventListener('change', function () {
 // ── Global state ───────────────────────────────────────────────────────────
 let dashboardData = null;
 let filterOptions = { branches: [], sections: [], semesters: [] };
-let attStudents = [];         // students loaded for current attendance session
-let attMap = {};              // pre-existing status map for the loaded session
+let attStudents = [];
+let attMap = {};
 let currentModalStudent = null;
 let currentModalMarksCourses = [];
 let currentModalAttStatus = 'PRESENT';
@@ -93,21 +92,21 @@ async function loadFilters() {
     const data = await res.json();
     filterOptions = data;
 
-    ['studBranch', 'attBranch'].forEach(id => {
+    ['studBranch'].forEach(id => {
       const el = document.getElementById(id);
       data.branches.forEach(b => {
         const o = document.createElement('option');
         o.value = b; o.textContent = b; el.appendChild(o);
       });
     });
-    ['studSection', 'attSection'].forEach(id => {
+    ['studSection'].forEach(id => {
       const el = document.getElementById(id);
       data.sections.forEach(s => {
         const o = document.createElement('option');
         o.value = s; o.textContent = `Section ${s}`; el.appendChild(o);
       });
     });
-    ['studSem', 'attSemester'].forEach(id => {
+    ['studSem'].forEach(id => {
       const el = document.getElementById(id);
       data.semesters.forEach(s => {
         const o = document.createElement('option');
@@ -403,152 +402,6 @@ document.getElementById('modal-marks-save').addEventListener('click', async () =
     msg.classList.remove('hidden');
     if (res.ok) showToast('Marks saved!');
   } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
-});
-
-// ══════════════════════════════════════════════════════════════════════════
-// BULK ATTENDANCE TAB
-// ══════════════════════════════════════════════════════════════════════════
-function initAttendanceTab() {
-  document.getElementById('attDate').valueAsDate = new Date();
-}
-initAttendanceTab();
-
-// When branch/semester changes, refresh courses dropdown
-async function loadCourses() {
-  const branch = document.getElementById('attBranch').value;
-  const semester = document.getElementById('attSemester').value;
-  const sel = document.getElementById('attCourse');
-  sel.innerHTML = '<option value="">— select course —</option>';
-  if (!branch && !semester) return;
-
-  try {
-    const qs = new URLSearchParams();
-    if (branch) qs.set('branch', branch);
-    if (semester) qs.set('semester', semester);
-    const res = await apiRequest(`/staff/courses?${qs}`);
-    if (!res.ok) return;
-    const { courses } = await res.json();
-    courses.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c._id;
-      o.textContent = `${c.code} — ${c.name} (Sem ${c.semester})`;
-      sel.appendChild(o);
-    });
-  } catch (e) { /* silent */ }
-}
-
-document.getElementById('attBranch').addEventListener('change', loadCourses);
-document.getElementById('attSemester').addEventListener('change', loadCourses);
-
-// Load students for the selected class
-document.getElementById('loadAttStudentsBtn').addEventListener('click', async () => {
-  const branch   = document.getElementById('attBranch').value;
-  const section  = document.getElementById('attSection').value;
-  const semester = document.getElementById('attSemester').value;
-  const courseId = document.getElementById('attCourse').value;
-  const date     = document.getElementById('attDate').value;
-
-  if (!branch || !semester) { showToast('Select at least Branch and Semester', 'error'); return; }
-  if (!courseId) { showToast('Select a Course', 'error'); return; }
-  if (!date) { showToast('Select a Date', 'error'); return; }
-
-  // fetch students
-  const qs = new URLSearchParams({ branch, semester });
-  if (section) qs.set('section', section);
-  try {
-    const [studRes, statusRes] = await Promise.all([
-      apiRequest(`/staff/students?${qs}`),
-      apiRequest(`/staff/attendance/status?courseId=${courseId}&date=${date}`)
-    ]);
-    const studData = await studRes.json();
-    const statusData = statusRes.ok ? await statusRes.json() : { map: {} };
-    if (!studRes.ok) { showToast(studData.message || 'Failed to load students', 'error'); return; }
-
-    attStudents = studData.students || [];
-    attMap = statusData.map || {};
-
-    if (!attStudents.length) { showToast('No students found for selected filters', 'error'); return; }
-
-    renderAttTable();
-    document.getElementById('attControls').classList.remove('hidden');
-    document.getElementById('attTableWrapper').classList.remove('hidden');
-    document.getElementById('attSubmitRow').classList.remove('hidden');
-    updateAttSummary();
-    showToast(`Loaded ${attStudents.length} students`);
-  } catch (e) {
-    showToast('Failed to load students', 'error');
-  }
-});
-
-function renderAttTable() {
-  const tbody = document.getElementById('attTableBody');
-  tbody.innerHTML = attStudents.map(s => {
-    const existing = attMap[s._id] || 'PRESENT';
-    return `
-      <tr id="att-row-${s._id}">
-        <td style="font-family:monospace;color:#1e88e5;">${s.rollNumber}</td>
-        <td style="font-weight:500;">${s.name}</td>
-        <td style="text-align:center;">
-          <div class="att-btn-wrap">
-            <button class="att-btn ${existing === 'PRESENT' ? 'att-btn-p-active' : 'att-btn-inactive'}"
-              data-id="${s._id}" data-val="PRESENT" onclick="setAttStatus('${s._id}','PRESENT')">P</button>
-            <button class="att-btn ${existing === 'ABSENT' ? 'att-btn-a-active' : 'att-btn-inactive'}"
-              data-id="${s._id}" data-val="ABSENT" onclick="setAttStatus('${s._id}','ABSENT')">A</button>
-          </div>
-        </td>
-      </tr>`;
-  }).join('');
-}
-
-function setAttStatus(studentId, status) {
-  attMap[studentId] = status;
-  const row = document.getElementById(`att-row-${studentId}`);
-  row.querySelectorAll('.att-btn').forEach(btn => {
-    const isActive = btn.dataset.val === status;
-    const isPresent = btn.dataset.val === 'PRESENT';
-    btn.className = `att-btn ${isActive ? (isPresent ? 'att-btn-p-active' : 'att-btn-a-active') : 'att-btn-inactive'}`;
-  });
-  updateAttSummary();
-}
-
-function updateAttSummary() {
-  const present = attStudents.filter(s => (attMap[s._id] || 'PRESENT') === 'PRESENT').length;
-  document.getElementById('attSummary').textContent =
-    `${present} Present / ${attStudents.length - present} Absent`;
-}
-
-document.getElementById('markAllPresent').addEventListener('click', () => {
-  attStudents.forEach(s => setAttStatus(s._id, 'PRESENT'));
-});
-document.getElementById('markAllAbsent').addEventListener('click', () => {
-  attStudents.forEach(s => setAttStatus(s._id, 'ABSENT'));
-});
-
-document.getElementById('submitBulkAttBtn').addEventListener('click', async () => {
-  const courseId = document.getElementById('attCourse').value;
-  const date     = document.getElementById('attDate').value;
-  if (!courseId || !date || !attStudents.length) {
-    showToast('Load students first before saving', 'error'); return;
-  }
-  const records = attStudents.map(s => ({
-    studentId: s._id,
-    status: attMap[s._id] || 'PRESENT'
-  }));
-  const btn = document.getElementById('submitBulkAttBtn');
-  btn.disabled = true; btn.textContent = 'Saving…';
-  try {
-    const res = await apiRequest('/staff/attendance/bulk', {
-      method: 'POST',
-      body: JSON.stringify({ courseId, date, records })
-    });
-    const data = await res.json();
-    btn.disabled = false; btn.textContent = 'Save Attendance';
-    if (res.ok) { showToast(data.message); }
-    else { showToast(data.message || 'Failed to save', 'error'); }
-  } catch (e) {
-    btn.disabled = false; btn.textContent = 'Save Attendance';
-    showToast('Network error', 'error');
-  }
 });
 
 // ── Recent announcements ───────────────────────────────────────────────────
