@@ -5,6 +5,7 @@ const Coin = require('../models/Coin');
 const Course = require('../models/Course');
 const Student = require('../models/Student');
 const Staff = require('../models/Staff');
+const Result = require('../models/Result');
 const asyncHandler = require('../utils/asyncHandler');
 
 const dashboard = asyncHandler(async (req, res) => {
@@ -54,13 +55,14 @@ const getStudentDetail = asyncHandler(async (req, res) => {
     .lean();
   if (!student) return res.status(404).json({ message: 'Student not found' });
 
-  const [recentAttendance, coins] = await Promise.all([
+  const [recentAttendance, coins, results] = await Promise.all([
     Attendance.find({ studentId: student._id }).sort({ date: -1 }).limit(10)
       .populate('courseId', 'name code').lean(),
-    Coin.find({ studentId: student._id }).sort({ createdAt: -1 }).limit(10).lean()
+    Coin.find({ studentId: student._id }).sort({ createdAt: -1 }).limit(10).lean(),
+    Result.find({ studentId: student._id }).sort({ semester: 1 }).lean()
   ]);
 
-  return res.json({ student, recentAttendance, coins });
+  return res.json({ student, recentAttendance, coins, results });
 });
 
 // ── List all courses ────────────────────────────────────────────────────────
@@ -164,6 +166,32 @@ const assignCoins = asyncHandler(async (req, res) => {
   return res.status(201).json({ message: 'Coins assigned', coin });
 });
 
+// ── Save / update CIE + ETE marks for a student+semester ──────────────────
+const saveMarks = asyncHandler(async (req, res) => {
+  const { studentId, semester, cie, ete } = req.body;
+  if (!studentId || !semester) {
+    return res.status(400).json({ message: 'studentId and semester are required' });
+  }
+  const result = await Result.findOneAndUpdate(
+    { studentId, semester: Number(semester) },
+    { $set: { cie: cie || [], ete: ete || [] } },
+    { upsert: true, new: true }
+  );
+  return res.json({ message: 'Marks saved successfully', result });
+});
+
+// ── Get results for a student (optionally filter by semester) ──────────────
+const getStudentResults = asyncHandler(async (req, res) => {
+  const { semester } = req.query;
+  const filter = { studentId: req.params.studentId };
+  if (semester) filter.semester = Number(semester);
+  const results = await Result.find(filter).sort({ semester: 1 }).lean();
+  const result = semester
+    ? (results.find(r => r.semester === Number(semester)) || null)
+    : null;
+  return res.json({ results, result });
+});
+
 module.exports = {
   dashboard,
   listStudents,
@@ -175,5 +203,7 @@ module.exports = {
   markAttendance,
   uploadFile,
   createAnnouncement,
-  assignCoins
+  assignCoins,
+  saveMarks,
+  getStudentResults
 };

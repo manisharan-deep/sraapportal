@@ -120,7 +120,7 @@ async function loadStudentDropdowns() {
     const res = await apiRequest('/staff/students');
     if (!res.ok) return;
     const { students } = await res.json();
-    ['coin-studentId', 'ann-studentId'].forEach(id => {
+    ['coin-studentId', 'ann-studentId', 'marks-student'].forEach(id => {
       const sel = document.getElementById(id);
       students.forEach(s => {
         const o = document.createElement('option');
@@ -489,6 +489,94 @@ document.getElementById('coinsForm').addEventListener('submit', async (e) => {
     msg.style.color = res.ok ? '#15803d' : '#dc2626';
     msg.classList.remove('hidden');
     if (res.ok) { showToast('Coins assigned!'); e.target.reset(); }
+  } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// MARKS TAB
+// ══════════════════════════════════════════════════════════════════════════
+let currentMarksCourses = [];
+
+document.getElementById('loadMarksBtn').addEventListener('click', async () => {
+  const studentId = document.getElementById('marks-student').value;
+  const semester  = document.getElementById('marks-semester').value;
+  const wrapper   = document.getElementById('marksTableWrapper');
+  const tbody     = document.getElementById('marksTableBody');
+  const msg       = document.getElementById('marks-msg');
+  msg.classList.add('hidden');
+  if (!studentId || !semester) { showToast('Please select a student and semester', 'error'); return; }
+
+  // find the student's branch from already-loaded list
+  const studentSel = document.getElementById('marks-student');
+  const selectedOption = studentSel.options[studentSel.selectedIndex];
+  // We need branch — fetch the student detail
+  let branch = '';
+  try {
+    const detailRes = await apiRequest(`/staff/students/${studentId}`);
+    if (detailRes.ok) {
+      const detail = await detailRes.json();
+      branch = detail.student ? detail.student.branch || '' : '';
+    }
+  } catch { /* ignore, courses will load without branch filter */ }
+
+  try {
+    const qs = new URLSearchParams({ semester });
+    if (branch) qs.set('branch', branch);
+    const [courseRes, resultRes] = await Promise.all([
+      apiRequest(`/staff/courses?${qs}`),
+      apiRequest(`/staff/results/${studentId}?semester=${semester}`)
+    ]);
+    if (!courseRes.ok) { showToast('Failed to load courses', 'error'); return; }
+    const { courses } = await courseRes.json();
+    currentMarksCourses = courses || [];
+
+    let existingCie = {};
+    let existingEte = {};
+    if (resultRes.ok) {
+      const rData = await resultRes.json();
+      const r = rData.result;
+      if (r) {
+        (r.cie || []).forEach(c => { existingCie[c.courseCode] = c.marks; });
+        (r.ete || []).forEach(c => { existingEte[c.courseCode] = c.marks; });
+      }
+    }
+
+    if (currentMarksCourses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#6b7280;padding:18px;">No courses found for this branch &amp; semester.</td></tr>';
+    } else {
+      tbody.innerHTML = currentMarksCourses.map(c => `
+        <tr>
+          <td>${c.code}</td>
+          <td>${c.name}</td>
+          <td><input type="number" id="cie-${c.code}" min="0" max="40" value="${existingCie[c.code] !== undefined ? existingCie[c.code] : ''}" style="width:80px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;"></td>
+          <td><input type="number" id="ete-${c.code}" min="0" max="60" value="${existingEte[c.code] !== undefined ? existingEte[c.code] : ''}" style="width:80px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;"></td>
+        </tr>`).join('');
+    }
+    wrapper.classList.remove('hidden');
+  } catch { showToast('Network error loading marks data', 'error'); }
+});
+
+document.getElementById('saveMarksBtn').addEventListener('click', async () => {
+  const studentId = document.getElementById('marks-student').value;
+  const semester  = document.getElementById('marks-semester').value;
+  const msg       = document.getElementById('marks-msg');
+  if (!studentId || !semester || currentMarksCourses.length === 0) { showToast('Load courses first', 'error'); return; }
+
+  const cie = [], ete = [];
+  currentMarksCourses.forEach(c => {
+    const cieVal = document.getElementById(`cie-${c.code}`);
+    const eteVal = document.getElementById(`ete-${c.code}`);
+    if (cieVal && cieVal.value !== '') cie.push({ courseCode: c.code, marks: Number(cieVal.value) });
+    if (eteVal && eteVal.value !== '') ete.push({ courseCode: c.code, marks: Number(eteVal.value) });
+  });
+
+  try {
+    const res = await apiRequest('/staff/results', { method: 'POST', body: JSON.stringify({ studentId, semester, cie, ete }) });
+    const data = await res.json();
+    msg.textContent = data.message || (res.ok ? 'Saved!' : 'Error saving marks');
+    msg.style.color = res.ok ? '#15803d' : '#dc2626';
+    msg.classList.remove('hidden');
+    if (res.ok) showToast('Marks saved successfully!');
   } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
 });
 

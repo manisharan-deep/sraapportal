@@ -19,5 +19,7 @@ router.post('/attendance/bulk', staffController.bulkMarkAttendance);
 router.post('/files', staffController.uploadFile);
 router.post('/announcements', validateRequest(announcementSchema), staffController.createAnnouncement);
 router.post('/coins', staffController.assignCoins);
+router.post('/results', staffController.saveMarks);
+router.get('/results/:studentId', staffController.getStudentResults);
 
 module.exports = router;
