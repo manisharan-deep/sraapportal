@@ -12,9 +12,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
-  toast.className = `fixed bottom-6 right-6 z-50 max-w-xs rounded-xl px-5 py-3 text-sm font-medium shadow-lg ${
-    type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-  }`;
+  toast.className = type === 'success' ? 'toast-success' : 'toast-error';
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3500);
 }
@@ -60,24 +58,24 @@ async function loadDashboard() {
     const attEl = document.getElementById('recentAttendance');
     if (data.recentAttendance && data.recentAttendance.length) {
       attEl.innerHTML = data.recentAttendance.map(a => `
-        <div class="flex justify-between items-center rounded-lg border border-white/10 bg-slate-800/40 px-3 py-2">
-          <span class="text-slate-200">${a.studentId?.name || a.studentId?.rollNumber || 'Unknown'}</span>
+        <div class="recent-item">
+          <span>${a.studentId?.name || a.studentId?.rollNumber || 'Unknown'}</span>
           <span class="badge badge-${(a.status||'').toLowerCase()}">${a.status}</span>
         </div>`).join('');
     } else {
-      attEl.innerHTML = '<p class="text-slate-500 text-xs">No recent entries</p>';
+      attEl.innerHTML = '<p class="text-muted">No recent entries</p>';
     }
 
     // Recent coins
     const coinsEl = document.getElementById('recentCoins');
     if (data.recentCoins && data.recentCoins.length) {
       coinsEl.innerHTML = data.recentCoins.map(c => `
-        <div class="flex justify-between items-center rounded-lg border border-white/10 bg-slate-800/40 px-3 py-2">
-          <span class="text-slate-200">${c.studentId?.name || '—'} — ${c.reason || 'No reason'}</span>
+        <div class="recent-item">
+          <span>${c.studentId?.name || '—'} — ${c.reason || 'No reason'}</span>
           <span class="badge badge-${(c.type||'').toLowerCase()}">${c.type} +${c.amount}</span>
         </div>`).join('');
     } else {
-      coinsEl.innerHTML = '<p class="text-slate-500 text-xs">No recent assignments</p>';
+      coinsEl.innerHTML = '<p class="text-muted">No recent assignments</p>';
     }
   } catch (e) {
     showToast('Failed to load dashboard', 'error');
@@ -141,7 +139,7 @@ let currentStudents = [];
 
 async function loadAllStudents(params = {}) {
   const tbody = document.getElementById('studentsTableBody');
-  tbody.innerHTML = '<tr><td colspan="9" class="px-3 py-8 text-center text-slate-500">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#6b7280;padding:24px;">Loading…</td></tr>';
 
   const qs = new URLSearchParams();
   if (params.search)  qs.set('search',  params.search);
@@ -165,36 +163,32 @@ function renderStudentsTable(students) {
   document.getElementById('studCount').textContent = `${students.length} student${students.length !== 1 ? 's' : ''}`;
 
   if (!students.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="px-3 py-8 text-center text-slate-500">No students found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#6b7280;padding:24px;">No students found</td></tr>';
     return;
   }
   tbody.innerHTML = students.map(s => `
-    <tr class="hover:bg-white/5 cursor-pointer transition-colors">
-      <td class="px-3 py-2.5 font-medium text-white">${s.name || '—'}</td>
-      <td class="px-3 py-2.5 font-mono text-cyan-300">${s.rollNumber || '—'}</td>
-      <td class="px-3 py-2.5">${s.branch || '—'}</td>
-      <td class="px-3 py-2.5">${s.section || '—'}</td>
-      <td class="px-3 py-2.5">${s.semester || '—'}</td>
-      <td class="px-3 py-2.5">${s.cgpa != null ? s.cgpa.toFixed(2) : '—'}</td>
-      <td class="px-3 py-2.5">
-        <span class="${attendanceClass(s.attendancePercentage)}">${s.attendancePercentage != null ? s.attendancePercentage.toFixed(1) + '%' : '—'}</span>
-      </td>
-      <td class="px-3 py-2.5 text-xs">
-        <span class="badge badge-alpha">α${s.alphaCoins||0}</span>
-        <span class="badge badge-sigma">σ${s.sigmaCoins||0}</span>
+    <tr>
+      <td style="font-weight:600;">${s.name || '—'}</td>
+      <td style="font-family:monospace;color:#1e88e5;">${s.rollNumber || '—'}</td>
+      <td>${s.branch || '—'}</td>
+      <td>${s.section || '—'}</td>
+      <td>${s.semester || '—'}</td>
+      <td>${s.cgpa != null ? s.cgpa.toFixed(2) : '—'}</td>
+      <td><span class="${attendanceClass(s.attendancePercentage)}">${s.attendancePercentage != null ? s.attendancePercentage.toFixed(1) + '%' : '—'}</span></td>
+      <td>
+        <span class="badge badge-alpha">a${s.alphaCoins||0}</span>
+        <span class="badge badge-sigma">s${s.sigmaCoins||0}</span>
         <span class="badge badge-penalty">P${s.penaltyCoins||0}</span>
       </td>
-      <td class="px-3 py-2.5">
-        <button class="rounded-lg bg-cyan-700 hover:bg-cyan-600 px-3 py-1 text-xs font-semibold" onclick="openStudentModal('${s._id}')">View</button>
-      </td>
+      <td><button class="btn-view" onclick="openStudentModal('${s._id}')">View</button></td>
     </tr>`).join('');
 }
 
 function attendanceClass(pct) {
-  if (pct == null) return 'text-slate-400';
-  if (pct >= 75) return 'text-emerald-400 font-semibold';
-  if (pct >= 60) return 'text-amber-400 font-semibold';
-  return 'text-rose-400 font-semibold';
+  if (pct == null) return 'text-muted';
+  if (pct >= 75) return 'att-good';
+  if (pct >= 60) return 'att-warn';
+  return 'att-bad';
 }
 
 // Student filter button
@@ -216,7 +210,6 @@ async function openStudentModal(studentId) {
   const body  = document.getElementById('modalStudentBody');
   const title = document.getElementById('modalStudentName');
   modal.classList.remove('hidden');
-  modal.classList.add('flex');
   title.textContent = 'Loading…';
   body.innerHTML = '<p class="text-slate-400">Fetching student data…</p>';
 
@@ -228,11 +221,11 @@ async function openStudentModal(studentId) {
     title.textContent = s.name || 'Student Profile';
 
     body.innerHTML = `
-      <div class="grid grid-cols-2 gap-3">
-        <div class="col-span-2 rounded-lg bg-slate-800/50 px-4 py-3">
-          <p class="text-xs text-slate-400 mb-0.5">Enrollment Number</p>
-          <p class="font-mono text-cyan-300 font-semibold">${s.userId?.enrollmentNumber || s.rollNumber || '—'}</p>
-        </div>
+      <div style="background:#e0f2fe;border-radius:6px;padding:10px 12px;margin-bottom:10px;">
+        <span style="font-size:11px;color:#6b7280;font-weight:600;display:block;">Enrollment Number</span>
+        <span class="di-mono">${s.userId?.enrollmentNumber || s.rollNumber || '—'}</span>
+      </div>
+      <div class="detail-grid">
         ${infoItem('Email', s.email || s.userId?.email || '—')}
         ${infoItem('Phone', s.phone || '—')}
         ${infoItem('Branch', s.branch || '—')}
@@ -250,34 +243,31 @@ async function openStudentModal(studentId) {
         ${infoItem('Joined', s.userId?.createdAt ? new Date(s.userId.createdAt).toLocaleDateString() : '—')}
       </div>
       ${data.recentAttendance && data.recentAttendance.length ? `
-      <div class="mt-4">
-        <p class="text-xs font-semibold text-slate-400 mb-2">Recent Attendance (last 10)</p>
-        <div class="space-y-1">
-          ${data.recentAttendance.map(a => `
-            <div class="flex justify-between text-xs">
-              <span class="text-slate-300">${a.courseId?.name || a.courseId?.code || 'Unknown Course'} · ${new Date(a.date).toLocaleDateString()}</span>
-              <span class="badge badge-${(a.status||'').toLowerCase()}">${a.status}</span>
-            </div>`).join('')}
-        </div>
+      <div style="margin-top:14px;">
+        <p style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;">Recent Attendance (last 10)</p>
+        ${data.recentAttendance.map(a => `
+          <div class="recent-item" style="font-size:13px;">
+            <span>${a.courseId?.name || a.courseId?.code || 'Unknown Course'} · ${new Date(a.date).toLocaleDateString()}</span>
+            <span class="badge badge-${(a.status||'').toLowerCase()}">${a.status}</span>
+          </div>`).join('')}
       </div>` : ''}`;
   } catch (e) {
-    body.innerHTML = '<p class="text-rose-400">Failed to load student details</p>';
+    body.innerHTML = '<p style="color:#dc2626;">Failed to load student details</p>';
   }
 }
 
 function infoItem(label, value) {
-  return `<div class="rounded-lg bg-slate-800/40 px-3 py-2">
-    <p class="text-xs text-slate-400 mb-0.5">${label}</p>
-    <p class="text-sm text-slate-100">${value}</p>
+  return `<div class="detail-item">
+    <span class="di-label">${label}</span>
+    <span class="di-val">${value}</span>
   </div>`;
 }
 
 document.getElementById('closeStudentModal').addEventListener('click', () => {
   document.getElementById('studentModal').classList.add('hidden');
-  document.getElementById('studentModal').classList.remove('flex');
 });
 document.getElementById('studentModal').addEventListener('click', function (e) {
-  if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); }
+  if (e.target === this) { this.classList.add('hidden'); }
 });
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -360,14 +350,14 @@ function renderAttTable() {
   tbody.innerHTML = attStudents.map(s => {
     const existing = attMap[s._id] || 'PRESENT';
     return `
-      <tr id="att-row-${s._id}" class="hover:bg-white/5">
-        <td class="px-3 py-2.5 font-mono text-cyan-300">${s.rollNumber}</td>
-        <td class="px-3 py-2.5 text-white">${s.name}</td>
-        <td class="px-3 py-2.5 text-center">
-          <div class="inline-flex rounded-lg overflow-hidden border border-white/10">
-            <button class="att-btn px-4 py-1.5 text-xs font-bold transition-colors ${existing === 'PRESENT' ? 'bg-emerald-700 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}"
+      <tr id="att-row-${s._id}">
+        <td style="font-family:monospace;color:#1e88e5;">${s.rollNumber}</td>
+        <td style="font-weight:500;">${s.name}</td>
+        <td style="text-align:center;">
+          <div class="att-btn-wrap">
+            <button class="att-btn ${existing === 'PRESENT' ? 'att-btn-p-active' : 'att-btn-inactive'}"
               data-id="${s._id}" data-val="PRESENT" onclick="setAttStatus('${s._id}','PRESENT')">P</button>
-            <button class="att-btn px-4 py-1.5 text-xs font-bold transition-colors ${existing === 'ABSENT' ? 'bg-red-700 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}"
+            <button class="att-btn ${existing === 'ABSENT' ? 'att-btn-a-active' : 'att-btn-inactive'}"
               data-id="${s._id}" data-val="ABSENT" onclick="setAttStatus('${s._id}','ABSENT')">A</button>
           </div>
         </td>
@@ -381,11 +371,7 @@ function setAttStatus(studentId, status) {
   row.querySelectorAll('.att-btn').forEach(btn => {
     const isActive = btn.dataset.val === status;
     const isPresent = btn.dataset.val === 'PRESENT';
-    btn.className = `att-btn px-4 py-1.5 text-xs font-bold transition-colors ${
-      isActive
-        ? (isPresent ? 'bg-emerald-700 text-white' : 'bg-red-700 text-white')
-        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-    }`;
+    btn.className = `att-btn ${isActive ? (isPresent ? 'att-btn-p-active' : 'att-btn-a-active') : 'att-btn-inactive'}`;
   });
   updateAttSummary();
 }
@@ -435,12 +421,12 @@ async function loadRecentAnnouncements() {
   const el = document.getElementById('annList');
   if (!el) return;
   const list = dashboardData?.recentAnnouncements || [];
-  if (!list.length) { el.innerHTML = '<p class="text-slate-500 text-xs">No announcements yet.</p>'; return; }
+  if (!list.length) { el.innerHTML = '<p class="text-muted">No announcements yet.</p>'; return; }
   el.innerHTML = list.map(a => `
-    <div class="rounded-lg border border-white/10 bg-slate-800/40 px-3 py-2">
-      <p class="text-sm font-semibold text-white">${a.title}</p>
-      <p class="text-xs text-slate-400 mt-0.5">${a.message}</p>
-      <p class="text-xs text-slate-500 mt-1">${a.scope} · ${new Date(a.createdAt).toLocaleDateString()}</p>
+    <div class="recent-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+      <strong style="font-size:14px;color:#1e3a6d;">${a.title}</strong>
+      <span style="font-size:13px;color:#374151;">${a.message}</span>
+      <span class="text-muted">${a.scope} · ${new Date(a.createdAt).toLocaleDateString()}</span>
     </div>`).join('');
 }
 
@@ -461,10 +447,10 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
     const res = await apiRequest('/staff/announcements', { method: 'POST', body: JSON.stringify(payload) });
     const data = await res.json();
     msg.textContent = data.message;
-    msg.className = `text-xs text-center ${res.ok ? 'text-emerald-400' : 'text-rose-400'}`;
+    msg.style.color = res.ok ? '#15803d' : '#dc2626';
     msg.classList.remove('hidden');
     if (res.ok) { showToast('Announcement posted!'); e.target.reset(); loadDashboard(); }
-  } catch { msg.textContent = 'Network error'; msg.className = 'text-xs text-center text-rose-400'; msg.classList.remove('hidden'); }
+  } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
 });
 
 // ── File upload form ───────────────────────────────────────────────────────
@@ -480,10 +466,10 @@ document.getElementById('fileForm').addEventListener('submit', async (e) => {
     const res = await apiRequest('/staff/files', { method: 'POST', body: JSON.stringify(payload) });
     const data = await res.json();
     msg.textContent = data.message;
-    msg.className = `text-xs text-center ${res.ok ? 'text-emerald-400' : 'text-rose-400'}`;
+    msg.style.color = res.ok ? '#15803d' : '#dc2626';
     msg.classList.remove('hidden');
     if (res.ok) { showToast('File uploaded!'); e.target.reset(); }
-  } catch { msg.textContent = 'Network error'; msg.className = 'text-xs text-center text-rose-400'; msg.classList.remove('hidden'); }
+  } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
 });
 
 // ── Coins form ─────────────────────────────────────────────────────────────
@@ -500,10 +486,10 @@ document.getElementById('coinsForm').addEventListener('submit', async (e) => {
     const res = await apiRequest('/staff/coins', { method: 'POST', body: JSON.stringify(payload) });
     const data = await res.json();
     msg.textContent = data.message;
-    msg.className = `text-xs text-center ${res.ok ? 'text-emerald-400' : 'text-rose-400'}`;
+    msg.style.color = res.ok ? '#15803d' : '#dc2626';
     msg.classList.remove('hidden');
     if (res.ok) { showToast('Coins assigned!'); e.target.reset(); }
-  } catch { msg.textContent = 'Network error'; msg.className = 'text-xs text-center text-rose-400'; msg.classList.remove('hidden'); }
+  } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────
