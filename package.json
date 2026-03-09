@@ -1,0 +1,26 @@
+{
+  "name": "sraap-portal",
+  "version": "1.0.0",
+  "description": "SR University Academic & Administration Portal",
+  "main": "backend/src/server.js",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "build": "cd backend && npm install",
+    "dev": "cd backend && npm run dev"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manisharan-deep/sraapportal.git"
+  },
+  "keywords": [
+    "university",
+    "portal",
+    "student",
+    "management"
+  ],
+  "author": "SR University",
+  "license": "MIT"
+}
