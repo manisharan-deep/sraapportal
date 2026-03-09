@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Login - SR University</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+    <style>
+      .password-suggestion-container {
+        margin-top: 12px;
+        padding: 15px;
+        background: #f5f9ff;
+        border: 1px solid #d9e2ff;
+        border-radius: 4px;
+      }
+
+      .password-suggestion-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .password-suggestion-toggle span {
+        font-size: 13px;
+        color: #555;
+        font-weight: 500;
+      }
+
+      .suggest-btn {
+        padding: 6px 16px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .suggest-btn:hover {
+        background: #1d4ed8;
+      }
+
+      .suggest-btn:active {
+        transform: scale(0.98);
+      }
+
+      .suggested-password {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .suggested-password input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #d9e2ff;
+        border-radius: 3px;
+        font-size: 13px;
+        background: white;
+        font-family: 'Courier New', monospace;
+        color: #2563eb;
+      }
+
+      .copy-btn {
+        padding: 8px 14px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .copy-btn:hover {
+        background: #45a049;
+      }
+
+      .password-strength {
+        margin-top: 12px;
+      }
+
+      .strength-meter {
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+
+      .strength-bar {
+        height: 100%;
+        width: 0;
+        background: #ef4444;
+        border-radius: 3px;
+        transition: width 0.3s, background 0.3s;
+      }
+
+      .strength-text {
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .d-none {
+        display: none !important;
+      }
+    </style>
+</head>
+<body class="sru-body">
+  <header class="sru-header">
+    <div class="sru-header-inner">
+      <a href="index.html" class="sru-brand" aria-label="SR University home">
+        <span class="sru-logo">SRU</span>
+        <span class="sru-brand-text">SR UNIVERSITY</span>
+      </a>
+      <div class="sru-header-actions">
+        <a href="login.html?role=STAFF" class="sru-pill" data-role-btn="STAFF">STAFF</a>
+        <a href="login.html?role=STUDENT" class="sru-pill" data-role-btn="STUDENT">STUDENT</a>
+        <a href="login.html?role=ADMIN" class="sru-pill" data-role-btn="ADMIN">ADMIN</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="sru-marquee">All final year students are hereby informed to clear the fee before course registration.</div>
+
+  <main class="sru-login-main solo-login">
+    <section class="sru-login-card login-animated-card">
+      <a href="#" class="sru-link-top">Know Your Batch ID</a>
+      <a href="#" class="sru-link-top">SRU Club Registration</a>
+      <h1 id="loginTitle">Student Login</h1>
+
+      <div id="errorAlert" class="d-none sru-error"></div>
+
+      <form id="loginForm">
+        <input type="hidden" id="role" value="STUDENT">
+
+        <label id="identifierLabel" for="identifier">Enrollment Number</label>
+        <input type="text" id="identifier" placeholder="Enter Enrollment Number" required>
+
+
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter Password" required>
+        
+        <div class="password-suggestion-container">
+          <div class="password-suggestion-toggle">
+            <span>Need a strong password?</span>
+            <button type="button" id="suggestPasswordBtn" class="suggest-btn">Suggest</button>
+          </div>
+          <div id="suggestedPassword" class="suggested-password d-none">
+            <input type="text" id="suggestedPasswordInput" readonly placeholder="Suggested password">
+            <button type="button" id="copyPasswordBtn" class="copy-btn" title="Copy to clipboard">Copy</button>
+          </div>
+          <div id="passwordStrength" class="password-strength">
+            <div class="strength-meter">
+              <div id="strengthBar" class="strength-bar"></div>
+            </div>
+            <span id="strengthText" class="strength-text">Password strength</span>
+          </div>
+        </div>
+        <div class="sru-captcha-block">
+          <canvas id="captchaCanvas" class="sru-captcha-canvas" width="190" height="52" aria-label="captcha image"></canvas>
+          <button type="button" id="refreshCaptcha" class="sru-captcha-refresh" aria-label="Refresh captcha">Refresh</button>
+        </div>
+
+        <label for="captchaInput">Captcha</label>
+        <input type="text" id="captchaInput" placeholder="Enter captcha" autocomplete="off" required>
+
+        <button type="submit" class="sru-btn-primary full">Sign in</button>
+      </form>
+
+      <p class="sru-auth-meta">New user? <a href="register.html">Register here</a></p>
+    </section>
+
+  </main>
+
+  <footer class="sru-footer">&copy; 2025, SR University. All Rights Reserved.</footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/login.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const roleFromUrl = params.get('role');
+    if (roleFromUrl && ['STUDENT', 'STAFF', 'ADMIN'].includes(roleFromUrl)) {
+      const roleInput = document.getElementById('role');
+      const roleLabel = document.getElementById('identifierLabel');
+      const title = document.getElementById('loginTitle');
+      roleInput.value = roleFromUrl;
+      title.textContent = `${roleFromUrl.charAt(0)}${roleFromUrl.slice(1).toLowerCase()} Login`;
+      roleLabel.textContent = roleFromUrl === 'STUDENT' ? 'Enrollment Number' : 'Username';
+      document.querySelectorAll('[data-role-btn]').forEach((btn) => {
+        if (btn.getAttribute('data-role-btn') === roleFromUrl) btn.classList.add('active');
+      });
+    }
+  </script>
+</body>
+</html>

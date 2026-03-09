@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update Student Details - SR University</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+    
+    .header {
+      background: #203c6d;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      background: white;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .form-title {
+      font-size: 26px;
+      font-weight: 600;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+      margin-bottom: 0;
+    }
+    
+    .form-section {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 0;
+      padding: 12px 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    
+        .section-green { background: #4caf50; }
+        .section-yellow { background: #ffc107; color: #333 !important; }
+        .section-cyan { background: #00bcd4; }
+        .section-red { background: #f44336; }
+        .section-blue { background: #2196f3; }
+    
+        .section-content {
+          padding: 25px;
+          border-bottom: 1px solid #eee;
+        }
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px 30px;
+    }
+    
+    .form-grid.single {
+      grid-template-columns: 1fr;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-group label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #2196f3;
+      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+
+        .form-group input:disabled {
+          background: #f5f5f5;
+          cursor: not-allowed;
+        }
+    }
+    
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+
+        .photo-section {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+        }
+
+        .profile-photo-display {
+          width: 120px;
+          height: 140px;
+          border: 2px solid #ddd;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f9f9f9;
+          font-size: 48px;
+          color: #999;
+        }
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+      padding: 25px;
+      background: #f8f9fa;
+    }
+    
+    .btn {
+      padding: 10px 30px;
+      border: none;
+      border-radius: 3px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #2d4f96;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1e3a6d;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #545b62;
+
+        .btn-back {
+          position: absolute;
+          top: 15px;
+          right: 30px;
+          background: white;
+          color: #203c6d;
+          padding: 8px 20px;
+          text-decoration: none;
+          border-radius: 3px;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .header-container {
+          position: relative;
+        }
+    }
+    
+    .alert {
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px;
+      display: none;
+    }
+    
+    .alert.show {
+      display: block;
+    }
+    
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .loading {
+      display: none;
+      padding: 20px;
+      text-align: center;
+      color: #666;
+    }
+    
+    .loading.show {
+      display: block;
+    }
+
+    .photo-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .profile-photo-display {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      background: #f3f4f6;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+    }
+
+    .photo-upload-label {
+      font-size: 12px;
+      color: #2d4f96;
+      font-weight: 600;
+    }
+
+    .photo-upload-input {
+      font-size: 12px;
+      width: 180px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-container">
+    <div class="header">
+      Academics & Administration Portal
+    </div>
+    <a href="dashboard.html" class="btn-back">← Back to Dashboard</a>
+  </div>
+
+  <div class="container">
+    <div class="form-title">Update the Student Details</div>
+    
+    <div class="alert alert-success" id="successAlert"></div>
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="loading" id="loadingSpinner">Loading your profile data...</div>
+
+    <form id="profileForm">
+      <!-- Student Basic Information -->
+      <div class="form-section">
+        <div class="section-title section-green">Student Basic Information</div>
+        <div class="section-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="rollNumber">Enrollment Number</label>
+              <input type="text" id="rollNumber" disabled>
+            </div>
+            <div class="photo-section">
+              <div id="profilePhotoDisplay" class="profile-photo-display">👤</div>
+              <label for="profilePhotoInput" class="photo-upload-label">Upload Profile Photo</label>
+              <input type="file" id="profilePhotoInput" accept="image/*" class="photo-upload-input">
+            </div>
+            <div class="form-group">
+              <label for="name">Student Name (as per SSC) *</label>
+              <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+              <label for="program">Degree</label>
+              <select id="program">
+                <option value="BTECH">UG-BTECH</option>
+                <option value="MTECH">M.Tech</option>
+                <option value="BBA">BBA</option>
+                <option value="MBA">MBA</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="branch">Branch & Specialization</label>
+              <select id="branch" required>
+                <option value="">Select Branch</option>
+                <option value="CSE">Computer Science Engineering</option>
+                <option value="CSE(AIML)">CSE - AI & ML</option>
+                <option value="CSE(DS)">CSE - Data Science</option>
+                <option value="ECE">Electronics & Communication</option>
+                <option value="EEE">Electrical & Electronics</option>
+                <option value="MECH">Mechanical Engineering</option>
+                <option value="CIVIL">Civil Engineering</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Admission Information -->
+      <div class="form-section">
+        <div class="section-title section-yellow">Student Admission Information</div>
+        <div class="section-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="admissionNumber">Admission No</label>
+              <input type="text" id="admissionNumber">
+            </div>
+            <div class="form-group">
+              <label for="admissionDate">Date of Admission</label>
+              <input type="date" id="admissionDate">
+            </div>
+            <div class="form-group">
+              <label for="admissionCategory">Admission Category</label>
+              <input type="text" id="admissionCategory" placeholder="e.g., General">
+            </div>
+            <div class="form-group">
+              <label for="admissionType">Admission Type</label>
+              <input type="text" id="admissionType" placeholder="e.g., Direct">
+            </div>
+            <div class="form-group">
+              <label for="admissionQuota">Admission Quota</label>
+              <input type="text" id="admissionQuota" placeholder="e.g., MGT">
+            </div>
+            <div class="form-group">
+              <label for="academicStatus">Student Academic Status</label>
+              <input type="text" id="academicStatus">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Basic Details Update -->
+      <div class="form-section">
+        <div class="section-title section-green">Student Basic Details Update (as per SSC / 10th Class)</div>
+        <div class="section-content">
+          <div class="form-grid">
+          <div class="form-group">
+            <label for="fatherName">Father Name</label>
+            <input type="text" id="fatherName">
+                      <div class="form-group">
+                        <label for="fatherOccupation">Father Occupation</label>
+                        <input type="text" id="fatherOccupation">
+                      </div>
+                      <div class="form-group">
+                        <label for="fatherMobile">Father Mobile Number</label>
+                        <input type="tel" id="fatherMobile">
+                      </div>
+          </div>
+          <div class="form-group">
+            <label for="motherName">Mother Name</label>
+            <input type="text" id="motherName">
+                      <div class="form-group">
+                        <label for="motherOccupation">Mother Occupation</label>
+                        <input type="text" id="motherOccupation">
+                      </div>
+                      <div class="form-group">
+                        <label for="motherMobile">Mother Mobile Number</label>
+                        <input type="tel" id="motherMobile">
+                      </div>
+                      <div class="form-group">
+                        <label for="phone">Student Mobile Number</label>
+                        <input type="tel" id="phone" placeholder="10-digit mobile number">
+                      </div>
+                      <div class="form-group">
+                        <label for="email">Student Email</label>
+                        <input type="email" id="email">
+                      </div>
+          </div>
+          <div class="form-group">
+            <label for="dateOfBirth">Date of Birth</label>
+            <input type="date" id="dateOfBirth">
+          </div>
+          <div class="form-group">
+            <label for="gender">Gender</label>
+            <select id="gender">
+              <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Contact Address -->
+                <div class="form-section">
+                  <div class="section-title section-cyan">Contact Address</div>
+                  <div class="section-content">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="contactState">State</label>
+                        <select id="contactState">
+                          <option value="">Select State</option>
+                          <option value="TELANGANA">TELANGANA</option>
+                          <option value="ANDHRA PRADESH">ANDHRA PRADESH</option>
+                          <option value="KARNATAKA">KARNATAKA</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label for="contactDistrict">District</label>
+                        <input type="text" id="contactDistrict">
+                      </div>
+                      <div class="form-group">
+                        <label for="contactMandal">Mandal</label>
+                        <input type="text" id="contactMandal">
+                      </div>
+                      <div class="form-group">
+                        <label for="contactVillage">Village</label>
+                        <input type="text" id="contactVillage">
+                      </div>
+                      <div class="form-group">
+                        <label for="contactStreet">Street</label>
+                        <input type="text" id="contactStreet">
+                      </div>
+                      <div class="form-group">
+                        <label for="contactHouseNumber">House Number</label>
+                        <input type="text" id="contactHouseNumber">
+                      </div>
+                      <div class="form-group">
+                        <label for="contactPinCode">Pin Code</label>
+                        <input type="text" id="contactPinCode">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Permanent Address -->
+                <div class="form-section">
+                  <div class="section-title section-red">Permanent Address</div>
+                  <div class="section-content">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="permanentState">State</label>
+                        <input type="text" id="permanentState">
+                      </div>
+                      <div class="form-group">
+                        <label for="permanentDistrict">District</label>
+                        <input type="text" id="permanentDistrict">
+                      </div>
+                      <div class="form-group">
+                        <label for="permanentMandal">Mandal</label>
+                        <input type="text" id="permanentMandal">
+                      </div>
+                      <div class="form-group">
+                        <label for="permanentVillage">Village</label>
+                        <input type="text" id="permanentVillage">
+                      </div>
+                      <div class="form-group">
+                        <label for="permanentStreet">Street</label>
+                        <input type="text" id="permanentStreet">
+                      </div>
+                      <div class="form-group">
+                        <label for="permanentHouseNumber">House Number</label>
+                        <input type="text" id="permanentHouseNumber">
+                      </div>
+                      <div class="form-group">
+                        <label for="permanentPinCode">Pin Code</label>
+                        <input type="text" id="permanentPinCode">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Identification Details -->
+                <div class="form-section">
+                  <div class="section-title section-blue">Identification details</div>
+                  <div class="section-content">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="aadharNumber">Aadhar number</label>
+                        <input type="text" id="aadharNumber" placeholder="12-digit Aadhar number">
+                      </div>
+          </div>
+          <div class="form-group">
+            <label for="bloodGroup">Blood Group</label>
+              <select id="bloodGroup">
+                <option value="">Select Blood Group</option>
+                <option value="O+VE">O+VE</option>
+                <option value="O-VE">O-VE</option>
+                <option value="A+VE">A+VE</option>
+                <option value="A-VE">A-VE</option>
+                <option value="B+VE">B+VE</option>
+                <option value="B-VE">B-VE</option>
+                <option value="AB+VE">AB+VE</option>
+                <option value="AB-VE">AB-VE</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="identificationMarks1">Identification Marks 1</label>
+              <input type="text" id="identificationMarks1">
+                      <div class="form-group">
+                        <label for="identificationMarks2">Identification Marks 2</label>
+                        <input type="text" id="identificationMarks2">
+                      </div>
+          </div>
+          <div class="form-group">
+              <label for="hostelResident">Stay At</label>
+              <select id="hostelResident">
+                <option value="DAY SCHOLAR">Day Scholar</option>
+                <option value="College Hostel">College Hostel</option>
+                <option value="Private Hostel">Private Hostel</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  <!-- SSC Details -->
+      <div class="form-section">
+        <div class="section-title section-red">SSC / 10th Class Details</div>
+        <div class="section-content">
+          <div class="form-grid">
+          <div class="form-group">
+              <label for="sscHallTicket">Hall Ticket Number</label>
+              <input type="text" id="sscHallTicket">
+          </div>
+          <div class="form-group">
+              <label for="sscBoard">Board of Study</label>
+              <input type="text" id="sscBoard">
+          </div>
+          <div class="form-group">
+              <label for="sscSchool">School Name</label>
+              <input type="text" id="sscSchool">
+            <div class="form-group">
+              <label for="sscSchoolAddress">School Address</label>
+              <input type="text" id="sscSchoolAddress">
+            </div>
+            <div class="form-group">
+              <label for="sscYearOfPass">Year of Pass</label>
+              <input type="text" id="sscYearOfPass">
+            </div>
+            <div class="form-group">
+              <label for="sscMaxMarks">Maximum of Marks/Grade</label>
+              <input type="text" id="sscMaxMarks">
+            </div>
+            <div class="form-group">
+              <label for="sscObtainedMarks">Obtained of Marks/Grade</label>
+              <input type="text" id="sscObtainedMarks">
+            </div>
+            <div class="form-group">
+              <label for="sscPercentage">Percentage of Marks/Grade</label>
+              <input type="text" id="sscPercentage">
+            </div>
+            <div class="form-group">
+              <label for="sscMedium">Medium</label>
+              <input type="text" id="sscMedium">
+            </div>
+            <div class="form-group">
+              <label for="sscPassType">Pass Type</label>
+              <input type="text" id="sscPassType">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10+2 Details -->
+      <div class="form-section">
+        <div class="section-title section-cyan">10+2 Type</div>
+        <div class="section-content">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="interType">10+2 Type</label>
+              <input type="text" id="interType">
+            </div>
+            <div class="form-group">
+              <label for="interHallTicket">10+2 Hall Ticket Number</label>
+              <input type="text" id="interHallTicket">
+            </div>
+            <div class="form-group">
+              <label for="interCollege">College Name</label>
+              <input type="text" id="interCollege">
+            </div>
+            <div class="form-group">
+              <label for="interCollegeAddress">College Address</label>
+              <input type="text" id="interCollegeAddress">
+            </div>
+            <div class="form-group">
+              <label for="interBoard">Board 10+2</label>
+              <input type="text" id="interBoard">
+            </div>
+            <div class="form-group">
+              <label for="interGroup">Group/Branch</label>
+              <input type="text" id="interGroup">
+            </div>
+            <div class="form-group">
+              <label for="interYearOfPass">Year of Pass</label>
+              <input type="text" id="interYearOfPass">
+            </div>
+            <div class="form-group">
+              <label for="interMaxMarks">Maximum of Marks/Grade</label>
+              <input type="text" id="interMaxMarks">
+            </div>
+            <div class="form-group">
+              <label for="interObtainedMarks">Obtained of Marks/Grade</label>
+              <input type="text" id="interObtainedMarks">
+            </div>
+            <div class="form-group">
+              <label for="interPercentage">Percentage of Marks/Grade</label>
+              <input type="text" id="interPercentage">
+            </div>
+            <div class="form-group">
+              <label for="interMedium">Medium</label>
+              <input type="text" id="interMedium">
+            </div>
+            <div class="form-group">
+              <label for="interPassType">Pass Type</label>
+              <input type="text" id="interPassType">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Profile</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/edit-profile.js"></script>
+</body>
+</html>

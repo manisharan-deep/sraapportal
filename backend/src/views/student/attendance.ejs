@@ -1,0 +1,21 @@
+<%- include('../partials/header') %>
+<h3>Attendance</h3>
+<div class="card mb-3"><div class="card-body">
+  <h5>Calculator</h5>
+  <form method="post" action="/student/attendance/calculate" class="row g-2">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-md-4"><input class="form-control" name="totalClasses" placeholder="Total classes" required></div>
+    <div class="col-md-4"><input class="form-control" name="presentClasses" placeholder="Present classes" required></div>
+    <div class="col-md-4"><button class="btn btn-primary">Calculate</button></div>
+  </form>
+  <% if (calcResult) { %>
+    <div class="alert alert-info mt-3">Current: <%= calcResult.percentage %>% | Classes needed for 75%: <%= calcResult.required %></div>
+  <% } %>
+  <a class="btn btn-outline-success btn-sm" href="/student/attendance/report">Generate PDF + Send Email/WhatsApp</a>
+</div></div>
+<div class="card"><div class="card-body"><h5>Last 10 Days</h5><ul>
+  <% last10Days.forEach((a) => { %><li><%= new Date(a.date).toDateString() %> - <%= a.status %></li><% }) %>
+</ul><h5 class="mt-3">Course wise</h5><ul>
+  <% courseWise.forEach((c) => { %><li><%= c.course %> : <%= c.percentage %>%</li><% }) %>
+</ul></div></div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,11 @@
+<%- include('../partials/header') %>
+<h3>Leaderboard</h3>
+<div class="card"><div class="card-body"><table class="table">
+  <thead><tr><th>Name</th><th>Alpha</th><th>Sigma</th><th>Penalty</th></tr></thead>
+  <tbody>
+  <% ranking.forEach((r) => { %>
+    <tr><td><%= r.userId?.fullName || 'Student' %></td><td><%= r.alphaCoins %></td><td><%= r.sigmaCoins %></td><td><%= r.penaltyCoins %></td></tr>
+  <% }) %>
+  </tbody>
+</table></div></div>
+<%- include('../partials/footer') %>

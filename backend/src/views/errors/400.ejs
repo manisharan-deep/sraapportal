@@ -1,0 +1,6 @@
+<%- include('../partials/header') %>
+<div class="alert alert-danger">
+  <h4>Validation Error</h4>
+  <% if (errors) { %><ul><% errors.forEach((e) => { %><li><%= e.message %></li><% }) %></ul><% } %>
+</div>
+<%- include('../partials/footer') %>

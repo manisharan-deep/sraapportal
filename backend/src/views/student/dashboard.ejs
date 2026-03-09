@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+<h3 class="mb-3">Student Dashboard</h3>
+<div class="row g-3">
+  <div class="col-md-4"><div class="card"><div class="card-body"><strong>Full Name</strong><div><%= currentUser.fullName %></div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><strong>Branch</strong><div><%= student.branch %></div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><strong>CGPA</strong><div><%= student.cgpa %></div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><strong>Backlogs</strong><div><%= student.backlogs %></div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><strong>Mentor</strong><div><%= student.mentor %></div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><strong>Alpha/Sigma/Penalty</strong><div><%= student.alphaCoins %> / <%= student.sigmaCoins %> / <%= student.penaltyCoins %></div></div></div></div>
+</div>
+<div class="mt-4">
+  <a class="btn btn-outline-primary btn-sm" href="/student/attendance">Attendance</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/academics">Academics</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/exams">Exams</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/fees">Fees</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/feedback">Feedback</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/leaderboard">Leaderboard</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/files">Files</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/calendar">Calendar</a>
+  <a class="btn btn-outline-primary btn-sm" href="/student/profile">Profile</a>
+</div>
+<div class="card mt-4"><div class="card-body"><h5>Announcements</h5><ul>
+  <% announcements.forEach((a) => { %><li><strong><%= a.title %></strong> - <%= a.message %></li><% }) %>
+</ul></div></div>
+<%- include('../partials/footer') %>

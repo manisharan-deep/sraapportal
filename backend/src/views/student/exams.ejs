@@ -1,0 +1,13 @@
+<%- include('../partials/header') %>
+<h3>Exams</h3>
+<div class="card mb-3"><div class="card-body"><h5>Exam Timetable</h5>
+<% schedules.forEach((s) => { %>
+  <div>Semester <%= s.semester %> - <%= s.branch %></div>
+<% }) %>
+</div></div>
+<div class="card"><div class="card-body"><h5>Hall Ticket</h5>
+<% if (hallTicket) { %>
+  <a href="<%= hallTicket.ticketUrl %>" class="btn btn-primary">Download Hall Ticket</a>
+<% } else { %><p>Not available.</p><% } %>
+</div></div>
+<%- include('../partials/footer') %>

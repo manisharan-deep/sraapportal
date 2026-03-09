@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exams & Payments - SR University</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+
+    .dashboard-header {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .sru-logo { font-size: 32px; font-weight: bold; }
+    .header-title { font-size: 28px; font-weight: 600; }
+
+    .nav-bar {
+      background: #2d4f96;
+      padding: 0 30px;
+      display: flex;
+      gap: 5px;
+      position: relative;
+      flex-wrap: wrap;
+    }
+    .nav-item {
+      color: white;
+      padding: 12px 15px;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item.has-dropdown::after { content: ' +'; }
+
+    .dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 240px;
+      z-index: 1000;
+    }
+    .dropdown a {
+      display: block;
+      padding: 10px 20px;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+      transition: all 0.3s;
+    }
+    .dropdown a:hover { background: #f0f0f0; }
+    .dropdown a.view-link:hover {
+      background: #4caf50;
+      color: white;
+      font-weight: 600;
+    }
+    .dropdown a.edit-link:hover {
+      background: #ff9800;
+      color: white;
+      font-weight: 600;
+    }
+    .nav-item:hover .dropdown { display: block; }
+
+    .welcome-banner {
+      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+      padding: 8px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #000;
+      font-weight: 500;
+    }
+    .no-due { color: #d32f2f; font-weight: 600; }
+    .welcome-text { flex: 1; text-align: center; }
+    .welcome-actions { display: flex; gap: 20px; }
+    .welcome-actions a { color: #000; text-decoration: none; font-weight: 600; }
+    .profile-icon { width: 30px; height: 30px; border-radius: 50%; background: #ccc; }
+
+    .page-wrap {
+      margin: 26px;
+      display: grid;
+      gap: 20px;
+    }
+    .section-box {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .section-head {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 12px 16px;
+    }
+    .section-body { padding: 16px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      font-size: 14px;
+      text-align: left;
+    }
+    th { background: #f8fafc; color: #1f2937; }
+
+    .chip-paid {
+      color: #0f5132;
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .chip-pending {
+      color: #7c2d12;
+      background: #ffedd5;
+      border: 1px solid #fdba74;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #6b7280;
+      padding: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      border: 1px dashed #d1d5db;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    .ticket-card {
+      border: 1px solid #dbe3f4;
+      border-radius: 8px;
+      padding: 14px;
+      background: #f9fbff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .ticket-card .meta {
+      color: #1f2937;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .download-btn {
+      text-decoration: none;
+      background: #2563eb;
+      color: white;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .footer {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 20px 30px;
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrap { margin: 14px; }
+      .ticket-card { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-header">
+    <div class="header-left">
+      <div class="sru-logo">[ sru</div>
+      <div class="header-title">SR UNIVERSITY</div>
+    </div>
+    <div class="header-title">Academics & Administration Portal</div>
+  </div>
+
+  <nav class="nav-bar">
+    <a href="dashboard.html" class="nav-item">Home</a>
+    <div class="nav-item has-dropdown">
+      Academics
+      <div class="dropdown">
+        <a href="edit-academics.html" class="view-link">View</a>
+        <a href="edit-academics.html" class="edit-link">Edit</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Profile
+      <div class="dropdown">
+        <a href="edit-profile.html" class="view-link">View</a>
+        <a href="edit-profile.html" class="edit-link">Edit</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Course Reg.
+      <div class="dropdown">
+        <a href="course-registration-status.html" class="view-link">Status</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Attendance
+      <div class="dropdown">
+        <a href="attendance-report.html" class="view-link">Attendance Report</a>
+        <a href="attendance-calculator.html" class="view-link">75% Attendance Calculator</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Results
+      <div class="dropdown">
+        <a href="results.html" class="view-link">Semester Memos</a>
+        <a href="results.html" class="view-link">Sem Wise CIE / ETE Marks</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Exams
+      <div class="dropdown">
+        <a href="exams.html#exam-details" class="view-link">Exam Details</a>
+        <a href="exams.html#payments" class="view-link">Payments</a>
+        <a href="exams.html#hallticket" class="view-link">Hall Tickets</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="welcome-banner">
+    <div class="no-due">No Due</div>
+    <div class="welcome-text welcome-text-scroll"><span class="scroll-track">Welcome to <span id="studentName">STUDENT NAME</span> - <span id="rollNumber">ROLL NUMBER</span></span></div>
+    <div class="welcome-actions">
+      <a href="#">Password</a>
+      <a href="#" id="logoutBtn">Logout</a>
+      <div class="profile-icon"></div>
+    </div>
+  </div>
+
+  <main class="page-wrap">
+    <section class="section-box" id="exam-details">
+      <div class="section-head">Exam Details</div>
+      <div class="section-body">
+        <div id="examState" class="empty-state">Loading exam details...</div>
+        <div id="examTableWrap" style="display:none; margin-top: 12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Course Code</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Venue</th>
+              </tr>
+            </thead>
+            <tbody id="examTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-box" id="payments">
+      <div class="section-head">Payments</div>
+      <div class="section-body">
+        <div id="paymentState" class="empty-state">Loading payment details...</div>
+        <div id="paymentTableWrap" style="display:none; margin-top: 12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Type</th>
+                <th>Semester</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Paid At</th>
+              </tr>
+            </thead>
+            <tbody id="paymentTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-box" id="hallticket">
+      <div class="section-head">Hall Ticket</div>
+      <div class="section-body">
+        <div id="hallTicketState" class="empty-state">Checking hall ticket...</div>
+        <div id="hallTicketCard" class="ticket-card" style="display:none; margin-top: 12px;">
+          <div class="meta">
+            <div><strong>Student:</strong> <span id="ticketStudent">-</span></div>
+            <div><strong>Roll Number:</strong> <span id="ticketRoll">-</span></div>
+            <div><strong>Semester:</strong> <span id="ticketSemester">-</span></div>
+          </div>
+          <a id="ticketDownload" class="download-btn" href="#" target="_blank" rel="noopener noreferrer">Download Hall Ticket</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">© Center for Software Development and Digital Learning | SR University</div>
+
+  <script src="../../js/config.js"></script>
+  <script>
+    if (!requireAuth() || !checkRole(['STUDENT'])) {
+      throw new Error('Access denied');
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      removeToken();
+      window.location.href = '../../login.html?role=STUDENT';
+    });
+
+    function formatDate(value) {
+      if (!value) return '-';
+      return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    async function loadExamsPage() {
+      try {
+        const response = await apiRequest('/student/exams-data');
+        const data = await response.json();
+
+        if (!response.ok) {
+          document.getElementById('examState').textContent = 'No exam';
+          document.getElementById('paymentState').textContent = 'No payment data';
+          document.getElementById('hallTicketState').textContent = 'No hall ticket available';
+          return;
+        }
+
+        const student = data.student || {};
+        document.getElementById('studentName').textContent = student.name || '-';
+        document.getElementById('rollNumber').textContent = student.rollNumber || '-';
+
+        const exams = data.exams || [];
+        if (exams.length === 0) {
+          document.getElementById('examState').textContent = 'No exam';
+        } else {
+          document.getElementById('examState').style.display = 'none';
+          document.getElementById('examTableWrap').style.display = 'block';
+          document.getElementById('examTableBody').innerHTML = exams.map((exam, idx) => `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>${exam.courseCode || '-'}</td>
+              <td>${formatDate(exam.date)}</td>
+              <td>${exam.startTime || '-'} - ${exam.endTime || '-'}</td>
+              <td>${exam.venue || '-'}</td>
+            </tr>
+          `).join('');
+        }
+
+        const payments = data.payments || [];
+        if (payments.length === 0) {
+          document.getElementById('paymentState').textContent = 'No payment data';
+        } else {
+          document.getElementById('paymentState').style.display = 'none';
+          document.getElementById('paymentTableWrap').style.display = 'block';
+          document.getElementById('paymentTableBody').innerHTML = payments.map((payment, idx) => `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>${payment.type || '-'}</td>
+              <td>${payment.semester || '-'}</td>
+              <td>${payment.amount != null ? payment.amount : '-'}</td>
+              <td><span class="${payment.status === 'PAID' ? 'chip-paid' : 'chip-pending'}">${payment.status || '-'}</span></td>
+              <td>${formatDate(payment.paidAt)}</td>
+            </tr>
+          `).join('');
+        }
+
+        const hallTicket = data.hallTicket;
+        if (!hallTicket || !hallTicket.ticketUrl) {
+          document.getElementById('hallTicketState').textContent = 'No hall ticket available';
+        } else {
+          document.getElementById('hallTicketState').style.display = 'none';
+          document.getElementById('hallTicketCard').style.display = 'flex';
+          document.getElementById('ticketStudent').textContent = student.name || '-';
+          document.getElementById('ticketRoll').textContent = student.rollNumber || '-';
+          document.getElementById('ticketSemester').textContent = hallTicket.semester || student.semester || '-';
+          document.getElementById('ticketDownload').href = hallTicket.ticketUrl;
+        }
+      } catch (error) {
+        document.getElementById('examState').textContent = 'No exam';
+        document.getElementById('paymentState').textContent = 'No payment data';
+        document.getElementById('hallTicketState').textContent = 'No hall ticket available';
+      }
+    }
+
+    loadExamsPage();
+  </script>
+</body>
+</html>

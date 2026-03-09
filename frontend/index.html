@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRAAP - SR University</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="sru-body">
+  <script>
+    // Auto-redirect logged-in students to dashboard
+    const token = localStorage.getItem('accessToken');
+    const role = localStorage.getItem('userRole');
+    if (token && role === 'STUDENT') {
+      window.location.href = 'pages/student/dashboard.html';
+    }
+  </script>
+  <header class="sru-header">
+    <div class="sru-header-inner">
+      <a href="index.html" class="sru-brand" aria-label="SR University home">
+        <span class="sru-logo">SRU</span>
+        <span class="sru-brand-text">SR UNIVERSITY</span>
+      </a>
+      <div class="sru-header-actions">
+        <a href="login.html?role=STAFF" class="sru-pill">STAFF</a>
+        <a href="login.html?role=STUDENT" class="sru-pill">STUDENT</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="sru-home-main">
+          <span></span><span class="active"></span><span></span>
+        </div>
+        <div class="mt-8 flex gap-3 justify-center">
+          <a href="login.html" class="sru-btn-primary">Sign In</a>
+          <a href="register.html" class="sru-btn-secondary">Register</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="sru-footer">
+    &copy; 2025, SR University. All Rights Reserved.
+  </footer>
+</body>
+</html>

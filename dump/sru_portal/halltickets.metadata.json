@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"studentId":{"$numberInt":"1"},"semester":{"$numberInt":"1"}},"name":"studentId_1_semester_1","background":true,"unique":true}],"uuid":"1a2946a1bd2c4fe888fa022768a84db1","collectionName":"halltickets","type":"collection"}

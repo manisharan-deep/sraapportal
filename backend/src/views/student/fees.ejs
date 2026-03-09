@@ -1,0 +1,8 @@
+<%- include('../partials/header') %>
+<h3>Fees</h3>
+<div class="card"><div class="card-body"><ul>
+<% feesData.forEach((f) => { %>
+  <li><%= f.type %> Fee - Semester <%= f.semester %> - ₹<%= f.amount %> - <%= f.status %></li>
+<% }) %>
+</ul></div></div>
+<%- include('../partials/footer') %>

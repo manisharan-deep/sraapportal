@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results - SR University</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+
+    .dashboard-header {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .sru-logo { font-size: 32px; font-weight: bold; }
+    .header-title { font-size: 28px; font-weight: 600; }
+
+    .nav-bar {
+      background: #2d4f96;
+      padding: 0 30px;
+      display: flex;
+      gap: 5px;
+      position: relative;
+      flex-wrap: wrap;
+    }
+    .nav-item {
+      color: white;
+      padding: 12px 15px;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item.has-dropdown::after { content: ' +'; }
+
+    .dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 240px;
+      z-index: 1000;
+    }
+    .dropdown a {
+      display: block;
+      padding: 10px 20px;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+      transition: all 0.3s;
+    }
+    .dropdown a:hover { background: #f0f0f0; }
+    .dropdown a.view-link:hover {
+      background: #4caf50;
+      color: white;
+      font-weight: 600;
+    }
+    .dropdown a.edit-link:hover {
+      background: #ff9800;
+      color: white;
+      font-weight: 600;
+    }
+    .nav-item:hover .dropdown { display: block; }
+
+    .welcome-banner {
+      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+      padding: 8px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #000;
+      font-weight: 500;
+    }
+    .no-due { color: #d32f2f; font-weight: 600; }
+    .welcome-text { flex: 1; text-align: center; }
+    .welcome-actions { display: flex; gap: 20px; }
+    .welcome-actions a { color: #000; text-decoration: none; font-weight: 600; }
+    .profile-icon { width: 30px; height: 30px; border-radius: 50%; background: #ccc; }
+
+    .results-section {
+      margin: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+    .results-title {
+      text-align: center;
+      color: #1e3a6d;
+      font-size: 34px;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+
+    .student-summary {
+      border: 1px solid #dbe3f4;
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 14px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .student-summary div {
+      font-size: 14px;
+      color: #1f2937;
+    }
+    .student-summary strong { color: #0f2f66; }
+
+    .semester-block {
+      margin-bottom: 28px;
+      border: 1px solid #e7e7e7;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .semester-head {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .memo-row {
+      padding: 10px 16px;
+      border-bottom: 1px solid #efefef;
+      background: #fcfdff;
+      font-size: 14px;
+    }
+    .memo-row a { color: #2d4f96; font-weight: 600; text-decoration: none; }
+
+    .marks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+    .marks-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+    }
+    .marks-card h4 {
+      background: #f3f6ff;
+      color: #1d3f7f;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 10px 12px;
+      font-size: 14px;
+      text-align: left;
+    }
+    th { background: #fafafa; color: #374151; }
+
+    .empty-box {
+      padding: 24px;
+      text-align: center;
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .footer {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 20px 30px;
+      text-align: center;
+      margin-top: 50px;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 10px;
+    }
+    .footer-links a {
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    @media (max-width: 900px) {
+      .student-summary { grid-template-columns: 1fr 1fr; }
+      .marks-grid { grid-template-columns: 1fr; }
+      .results-section { margin: 16px; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-header">
+    <div class="header-left">
+      <div class="sru-logo">[ sru</div>
+      <div class="header-title">SR UNIVERSITY</div>
+    </div>
+    <div class="header-title">Academics & Administration Portal</div>
+  </div>
+
+  <nav class="nav-bar">
+    <a href="dashboard.html" class="nav-item">Home</a>
+    <div class="nav-item has-dropdown">
+      Academics
+      <div class="dropdown">
+        <a href="edit-academics.html" class="view-link">View</a>
+        <a href="edit-academics.html" class="edit-link">Edit</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Profile
+      <div class="dropdown">
+        <a href="edit-profile.html" class="view-link">View</a>
+        <a href="edit-profile.html" class="edit-link">Edit</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Course Reg.
+      <div class="dropdown">
+        <a href="course-registration-status.html" class="view-link">Status</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Attendance
+      <div class="dropdown">
+        <a href="attendance-report.html" class="view-link">Attendance Report</a>
+        <a href="attendance-calculator.html" class="view-link">75% Attendance Calculator</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Results
+      <div class="dropdown">
+        <a href="results.html" class="view-link">Semester Memos</a>
+        <a href="results.html" class="view-link">Sem Wise CIE / ETE Marks</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Exams
+      <div class="dropdown">
+        <a href="exams.html#exam-details" class="view-link">Exam Details</a>
+        <a href="exams.html#payments" class="view-link">Payments</a>
+        <a href="exams.html#hallticket" class="view-link">Hall Tickets</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="welcome-banner">
+    <div class="no-due">No Due</div>
+    <div class="welcome-text welcome-text-scroll">
+      <span class="scroll-track">Welcome to <span id="studentName">STUDENT NAME</span> - <span id="rollNumber">ROLL NUMBER</span></span>
+    </div>
+    <div class="welcome-actions">
+      <a href="#">Password</a>
+      <a href="#" id="logoutBtn">Logout</a>
+      <div class="profile-icon"></div>
+    </div>
+  </div>
+
+  <section class="results-section">
+    <h1 class="results-title">All Results</h1>
+
+    <div class="student-summary">
+      <div><strong>Name:</strong> <span id="sumName">-</span></div>
+      <div><strong>Roll No:</strong> <span id="sumRoll">-</span></div>
+      <div><strong>Program:</strong> <span id="sumProgram">-</span></div>
+      <div><strong>Branch:</strong> <span id="sumBranch">-</span></div>
+    </div>
+
+    <div id="resultsContainer" class="empty-box">Loading results...</div>
+  </section>
+
+  <div class="footer">
+    <div class="footer-links">
+      <a href="https://www.facebook.com/sruniversityindia" target="_blank" rel="noopener noreferrer">Facebook</a>
+      <a href="https://www.instagram.com/sr_university/?hl=en" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="https://www.linkedin.com/school/sr-university/?originalSubdomain=in" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="#">Twitter</a>
+      <a href="https://www.youtube.com/@SRUniversity" target="_blank" rel="noopener noreferrer">YouTube</a>
+      <a href="https://sru.edu.in/" target="_blank" rel="noopener noreferrer">SRU Website</a>
+    </div>
+    <div>© Center for Software Development and Digital Learning | SR University</div>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script>
+    if (!requireAuth() || !checkRole(['STUDENT'])) {
+      throw new Error('Access denied');
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      removeToken();
+      window.location.href = '../../login.html?role=STUDENT';
+    });
+
+    function rowsForMarks(list, label) {
+      if (!list || list.length === 0) {
+        return '<div class="empty-box">No ' + label + ' data</div>';
+      }
+
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Course Code</th>
+              <th>Marks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map((item, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${item.courseCode || '-'}</td>
+                <td>${item.marks ?? '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function loadResults() {
+      try {
+        const response = await apiRequest('/student/results-data');
+        const data = await response.json();
+
+        if (!response.ok) {
+          document.getElementById('resultsContainer').innerHTML = '<div class="empty-box">Unable to load results.</div>';
+          return;
+        }
+
+        const student = data.student || {};
+        document.getElementById('studentName').textContent = student.name || '-';
+        document.getElementById('rollNumber').textContent = student.rollNumber || '-';
+        document.getElementById('sumName').textContent = student.name || '-';
+        document.getElementById('sumRoll').textContent = student.rollNumber || '-';
+        document.getElementById('sumProgram').textContent = student.program || '-';
+        document.getElementById('sumBranch').textContent = student.branch || '-';
+
+        const results = data.results || [];
+        if (results.length === 0) {
+          document.getElementById('resultsContainer').innerHTML = '<div class="empty-box">No results available yet.</div>';
+          return;
+        }
+
+        document.getElementById('resultsContainer').className = '';
+        document.getElementById('resultsContainer').innerHTML = results.map((sem) => `
+          <div class="semester-block">
+            <div class="semester-head">Semester ${sem.semester}</div>
+            <div class="memo-row">Semester Memo: ${sem.semesterMemoUrl ? `<a href="${sem.semesterMemoUrl}" target="_blank" rel="noopener noreferrer">Open Memo</a>` : 'Not uploaded'}</div>
+            <div class="marks-grid">
+              <div class="marks-card">
+                <h4>Sem Wise CIE Marks</h4>
+                ${rowsForMarks(sem.cie, 'CIE')}
+              </div>
+              <div class="marks-card">
+                <h4>Sem Wise ETE Marks</h4>
+                ${rowsForMarks(sem.ete, 'ETE')}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('resultsContainer').innerHTML = '<div class="empty-box">Error loading results.</div>';
+      }
+    }
+
+    loadResults();
+  </script>
+</body>
+</html>

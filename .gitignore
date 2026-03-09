@@ -1,0 +1,7 @@
+backend/node_modules
+backend/logs
+backend/.env
+.terraform
+*.tfstate
+*.tfstate.backup
+.DS_Store

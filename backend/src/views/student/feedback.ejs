@@ -1,0 +1,11 @@
+<%- include('../partials/header') %>
+<h3>Feedback</h3>
+<form method="post" action="/student/feedback" class="card card-body">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="mb-2"><select class="form-select" name="category"><option>FACULTY</option><option>MENTOR</option><option>COLLEGE</option></select></div>
+  <div class="mb-2"><input class="form-control" name="subject" placeholder="Subject" required></div>
+  <div class="mb-2"><input class="form-control" name="rating" type="number" min="1" max="5" required></div>
+  <div class="mb-2"><textarea class="form-control" name="comments" placeholder="Comments"></textarea></div>
+  <button class="btn btn-primary">Submit</button>
+</form>
+<%- include('../partials/footer') %>

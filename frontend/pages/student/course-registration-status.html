@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Registration Status - SR University</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+    
+    /* Header */
+    .dashboard-header {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .sru-logo { font-size: 32px; font-weight: bold; }
+    .header-title { font-size: 28px; font-weight: 600; }
+    
+    /* Navigation */
+    .nav-bar {
+      background: #2d4f96;
+      padding: 0 30px;
+      display: flex;
+      gap: 5px;
+      position: relative;
+    }
+    .nav-item {
+      color: white;
+      padding: 12px 15px;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item.has-dropdown::after { content: ' +'; }
+    
+    /* Dropdown */
+    .dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 220px;
+      z-index: 1000;
+    }
+    .dropdown a {
+      display: block;
+      padding: 10px 20px;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+      transition: all 0.3s;
+    }
+    .dropdown a:hover { background: #f0f0f0; }
+    .dropdown a.view-link:hover {
+      background: #4caf50;
+      color: white;
+      font-weight: 600;
+    }
+    .dropdown a.edit-link:hover {
+      background: #ff9800;
+      color: white;
+      font-weight: 600;
+    }
+    .nav-item:hover .dropdown { display: block; }
+    
+    /* Welcome Banner */
+    .welcome-banner {
+      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+      padding: 8px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #000;
+      font-weight: 500;
+    }
+    .no-due { color: #d32f2f; font-weight: 600; }
+    .welcome-text { flex: 1; text-align: center; }
+    .welcome-actions { display: flex; gap: 20px; }
+    .welcome-actions a { color: #000; text-decoration: none; font-weight: 600; }
+    .profile-icon { width: 30px; height: 30px; border-radius: 50%; background: #ccc; }
+    
+    /* Footer */
+    .footer {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 20px 30px;
+      text-align: center;
+      margin-top: 50px;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 10px;
+    }
+    .footer-links a {
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .footer-copyright { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 10px; }
+    
+    /* Course Registration Section */
+    .course-registration-section {
+      margin: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    
+    .course-reg-title {
+      text-align: center;
+      color: #2d4f96;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #2d4f96;
+      padding-bottom: 10px;
+    }
+    
+    .student-info-box {
+      display: flex;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .student-info-content {
+      flex: 1;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      background: #f9f9f9;
+    }
+    
+    .info-field {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .info-field label {
+      font-weight: 600;
+      color: #333;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+    
+    .info-field span {
+      color: #000;
+      font-size: 14px;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    
+    .student-photo-box {
+      width: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f0f0;
+      border-left: 1px solid #ddd;
+    }
+    
+    .placeholder-photo {
+      font-size: 60px;
+      color: #999;
+    }
+    
+    /* Year/Semester Section */
+    .year-semester-section {
+      margin-bottom: 30px;
+    }
+    
+    .year-semester-title {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 12px 15px;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    
+    .course-table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 15px;
+    }
+    
+    .course-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1px solid #ddd;
+    }
+    
+    .course-table thead {
+      background: #f5f5f5;
+      border-bottom: 2px solid #ddd;
+    }
+    
+    .course-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      font-size: 13px;
+      border-right: 1px solid #ddd;
+    }
+    
+    .course-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      border-right: 1px solid #eee;
+      font-size: 14px;
+      color: #555;
+    }
+    
+    .course-table tbody tr:hover {
+      background: #f9f9f9;
+    }
+    
+    .course-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .course-table th:last-child,
+    .course-table td:last-child {
+      border-right: none;
+    }
+    
+    .no-courses-message {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <div class="sru-logo">[ sru</div>
+      <div class="header-title">SR UNIVERSITY</div>
+    </div>
+    <div class="header-title">Academics & Administration Portal</div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <a href="dashboard.html" class="nav-item">Home</a>
+    <div class="nav-item has-dropdown">
+      Academics
+      <div class="dropdown">
+        <a href="edit-academics.html" class="view-link">View</a>
+        <a href="edit-academics.html" class="edit-link">Edit</a>
+        <a href="https://sraap.in/acb_uploads/2025-26_2_BTECH_20260102.pdf" target="_blank">Academic Calendar</a>
+        <a href="#">Syllabus</a>
+        <a href="https://sraap.in/acb_uploads/R23_BTECH_20240322.pdf" target="_blank">Hand Book</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Profile
+      <div class="dropdown">
+        <a href="edit-profile.html" class="view-link">View</a>
+        <a href="edit-profile.html" class="edit-link">Edit</a>
+        <a href="edit-profile.html">Upload Aadhaar</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Course Reg.
+      <div class="dropdown">
+        <a href="#" class="view-link">Register</a>
+        <a href="#" class="edit-link">Edit</a>
+        <a href="course-registration-status.html" class="view-link">Status</a>
+        <a href="#">Summer | Winter Term Register</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Attendance
+      <div class="dropdown">
+        <a href="#" class="view-link">View Attendance</a>
+        <a href="attendance-report.html" class="view-link">Attendance Report</a>
+        <a href="attendance-calculator.html" class="view-link">75% Attendance Calculator</a>
+        <a href="#">Request Leave</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Results
+      <div class="dropdown">
+        <a href="results.html" class="view-link">Semester Memos</a>
+        <a href="results.html" class="view-link">Sem Wise CIE / ETE Marks</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Exams
+      <div class="dropdown">
+        <a href="exams.html#exam-details" class="view-link">Exam Details</a>
+        <a href="exams.html#payments" class="view-link">Payments</a>
+        <a href="exams.html#hallticket" class="view-link">Hall Tickets</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Finances
+      <div class="dropdown">
+        <a href="#" class="view-link">View Fees</a>
+        <a href="#">Fee Payment</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Communications
+      <div class="dropdown">
+        <a href="#" class="view-link">View Announcements</a>
+        <a href="#">Send Message</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Feedback
+      <div class="dropdown">
+        <a href="#" class="edit-link">Submit Feedback</a>
+        <a href="#">View Status</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      Grievance
+      <div class="dropdown">
+        <a href="#" class="edit-link">Submit Grievance</a>
+        <a href="#" class="view-link">Track Status</a>
+      </div>
+    </div>
+    <div class="nav-item has-dropdown">
+      SSM
+      <div class="dropdown">
+        <a href="edit-academics.html" class="view-link">View SSM Data</a>
+        <a href="edit-academics.html" class="edit-link">Edit SSM Data</a>
+      </div>
+    </div>
+    <a href="#" class="nav-item">University Clubs</a>
+    <a href="#" class="nav-item">Central Library</a>
+    <a href="#" class="nav-item">Placements</a>
+  </nav>
+
+  <!-- Welcome Banner -->
+  <div class="welcome-banner">
+    <div class="no-due">No Due</div>
+    <div class="welcome-text welcome-text-scroll">
+      <span class="scroll-track">Welcome to <span id="studentName">STUDENT NAME</span> - <span id="rollNumber">ROLL NUMBER</span> - <span id="program">PROGRAM</span> - <span id="branch">BRANCH</span></span>
+    </div>
+    <div class="welcome-actions">
+      <a href="#">Password</a>
+      <a href="#" id="logoutBtn">Logout</a>
+      <div class="profile-icon"></div>
+    </div>
+  </div>
+
+  <!-- Course Registration Section -->
+  <div class="course-registration-section">
+    <h2 class="course-reg-title">Course Registration View</h2>
+    
+    <!-- Student Info -->
+    <div class="student-info-box">
+      <div class="student-info-content">
+        <div class="info-field">
+          <label>Enrollment Number</label>
+          <span id="enrollmentNum">-</span>
+        </div>
+        <div class="info-field">
+          <label>Student Name(as per SSC)</label>
+          <span id="studentNameBox">-</span>
+        </div>
+        <div class="info-field">
+          <label>Degree</label>
+          <span id="degreeBox">-</span>
+        </div>
+      </div>
+      <div class="student-photo-box">
+        <div class="placeholder-photo">📷</div>
+      </div>
+    </div>
+
+    <!-- Courses by Year/Semester -->
+    <div id="coursesByYearContainer"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-links">
+      <a href="https://www.facebook.com/sruniversityindia" target="_blank" rel="noopener noreferrer"><svg width="20" height="20" fill="currentColor"><text x="0" y="15" font-size="15">f</text></svg> Facebook</a>
+      <a href="https://www.instagram.com/sr_university/?hl=en" target="_blank" rel="noopener noreferrer">📷 Instagram</a>
+      <a href="https://www.linkedin.com/school/sr-university/?originalSubdomain=in" target="_blank" rel="noopener noreferrer">💼 LinkedIn</a>
+      <a href="#">🐦 Twitter</a>
+      <a href="https://www.youtube.com/@SRUniversity" target="_blank" rel="noopener noreferrer">▶️ YouTube</a>
+      <a href="https://sru.edu.in/" target="_blank" rel="noopener noreferrer">🌐 SRU Website</a>
+    </div>
+    <div class="footer-copyright">
+      © Center for Software Development and Digital Learning | SR University
+    </div>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script>
+    if (!requireAuth() || !checkRole(['STUDENT'])) {
+      throw new Error('Access denied');
+    }
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      removeToken();
+      window.location.href = '../../login.html?role=STUDENT';
+    });
+
+    async function loadStudentInfo() {
+      try {
+        const response = await apiRequest('/student/dashboard');
+        const data = await response.json();
+
+        if (response.ok && data.student) {
+          const student = data.student;
+          
+          // Welcome banner
+          document.getElementById('studentName').textContent = student.name || '-';
+          document.getElementById('rollNumber').textContent = student.rollNumber || '-';
+          document.getElementById('program').textContent = student.program || '-';
+          document.getElementById('branch').textContent = student.branch || '-';
+        }
+      } catch (error) {
+        console.error('Failed to load student info:', error);
+      }
+    }
+
+    async function loadCourseRegistrations() {
+      try {
+        const response = await apiRequest('/student/courses');
+        const data = await response.json();
+
+        if (response.ok && data.student) {
+          // Populate student info
+          document.getElementById('enrollmentNum').textContent = data.student.enrollmentNumber || '-';
+          document.getElementById('studentNameBox').textContent = data.student.fullName || '-';
+          document.getElementById('degreeBox').textContent = data.student.degree || '-';
+          
+          // Populate courses by year/semester
+          const container = document.getElementById('coursesByYearContainer');
+          
+          if (data.coursesByYear && data.coursesByYear.length > 0) {
+            let html = '';
+            data.coursesByYear.forEach(yearData => {
+              html += `
+                <div class="year-semester-section">
+                  <div class="year-semester-title">AC Year: ${yearData.academicYear} | Semester: ${yearData.semester}</div>
+                  <div class="course-table-wrapper">
+                    <table class="course-table">
+                      <thead>
+                        <tr>
+                          <th>S.No</th>
+                          <th>AC Year/Sem</th>
+                          <th>Course Code</th>
+                          <th>Course Name</th>
+                          <th>E-Batch</th>
+                          <th>Emp Name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+              `;
+              
+              yearData.courses.forEach((course, index) => {
+                html += `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${yearData.academicYear}/${yearData.semester}</td>
+                    <td>${course.code || '-'}</td>
+                    <td>${course.name || '-'}</td>
+                    <td>-</td>
+                    <td>${course.facultyName || 'TBA'}</td>
+                  </tr>
+                `;
+              });
+              
+              html += `
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              `;
+            });
+            container.innerHTML = html;
+          } else {
+            container.innerHTML = '<div class="no-courses-message">No course registrations found</div>';
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load course registrations:', error);
+        document.getElementById('coursesByYearContainer').innerHTML = '<div class="no-courses-message">Unable to load course registrations</div>';
+      }
+    }
+
+    // Load data on page load
+    loadStudentInfo();
+    loadCourseRegistrations();
+  </script>
+</body>
+</html>

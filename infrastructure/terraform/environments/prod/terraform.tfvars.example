@@ -1,0 +1,7 @@
+aws_region               = "us-east-1"
+s3_bucket_name           = "sru-portal-prod-artifacts"
+mongodb_atlas_public_key = "atlas_public_key"
+mongodb_atlas_private_key = "atlas_private_key"
+mongodb_atlas_org_id     = "atlas_org_id"
+mongodb_db_username      = "sru_admin"
+mongodb_db_password      = "change_me"

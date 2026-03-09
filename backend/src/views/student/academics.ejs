@@ -1,0 +1,36 @@
+<%- include('../partials/header') %>
+<h3>Academics</h3>
+<div class="card mb-3"><div class="card-body">
+  <h5>Course Registration</h5>
+  <form method="post" action="/student/academics/register" class="row g-2 mb-3">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-md-8">
+      <select class="form-select" name="courseId" required>
+        <% availableCourses.forEach((course) => { %>
+          <option value="<%= course._id %>"><%= course.code %> - <%= course.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-md-4"><button class="btn btn-primary">Register Course</button></div>
+  </form>
+
+  <ul class="list-group">
+    <% enrollments.forEach((e) => { %>
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span><%= e.courseId ? `${e.courseId.code} - ${e.courseId.name}` : 'Course' %> - <%= e.status %></span>
+        <form method="post" action="/student/academics/<%= e._id %>" class="d-flex gap-2">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <select class="form-select form-select-sm" name="status">
+            <option value="REGISTERED" <%= e.status === 'REGISTERED' ? 'selected' : '' %>>REGISTERED</option>
+            <option value="DROPPED" <%= e.status === 'DROPPED' ? 'selected' : '' %>>DROPPED</option>
+          </select>
+          <button class="btn btn-sm btn-outline-secondary">Update</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</div></div>
+<div class="card"><div class="card-body"><h5>Semester Results (CIE/ETE/Memos)</h5><ul>
+  <% results.forEach((r) => { %><li>Semester <%= r.semester %> | Memo: <%= r.semesterMemoUrl || 'N/A' %></li><% }) %>
+</ul></div></div>
+<%- include('../partials/footer') %>

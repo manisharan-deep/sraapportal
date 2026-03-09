@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+<h3>Admin Dashboard</h3>
+<div class="card mb-3"><div class="card-body">
+  <h5>Pending Profile Approvals</h5>
+  <% pending.forEach((p) => { %>
+    <div class="border rounded p-2 mb-2">
+      <div class="mb-2"><strong><%= p.userId.fullName %></strong> requested: Branch <%= p.pendingProfileData?.branch || p.branch %>, Section <%= p.pendingProfileData?.section || p.section %>, Semester <%= p.pendingProfileData?.semester || p.semester %>, Mentor <%= p.pendingProfileData?.mentor || p.mentor %></div>
+      <div class="d-flex gap-2">
+        <form method="post" action="/admin/students/<%= p._id %>/approve-profile">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-success">Approve</button>
+        </form>
+        <form method="post" action="/admin/students/<%= p._id %>/reject-profile">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-outline-danger">Reject</button>
+        </form>
+      </div>
+    </div>
+  <% }) %>
+</div></div>
+<div class="card"><div class="card-body">
+  <h5>Users</h5>
+  <ul><% users.forEach((u) => { %><li><%= u.fullName %> - <%= u.role %> - <%= u.email %></li><% }) %></ul>
+</div></div>
+<%- include('../partials/footer') %>

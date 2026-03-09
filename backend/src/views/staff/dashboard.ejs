@@ -1,0 +1,52 @@
+<%- include('../partials/header') %>
+<h3>Staff Dashboard</h3>
+<div class="row g-3">
+  <div class="col-md-6"><div class="card card-body">
+    <h5>Mark Attendance</h5>
+    <form method="post" action="/staff/attendance">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input class="form-control mb-2" name="studentId" placeholder="Student ID" required>
+      <input class="form-control mb-2" name="courseId" placeholder="Course ID" required>
+      <input class="form-control mb-2" type="date" name="date" required>
+      <select class="form-select mb-2" name="status"><option>PRESENT</option><option>ABSENT</option></select>
+      <button class="btn btn-primary">Submit</button>
+    </form>
+  </div></div>
+  <div class="col-md-6"><div class="card card-body">
+    <h5>Upload File</h5>
+    <form method="post" action="/staff/files">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input class="form-control mb-2" name="name" placeholder="File Name" required>
+      <input class="form-control mb-2" name="url" placeholder="File URL" required>
+      <input class="form-control mb-2" name="batch" placeholder="Batch (e.g CSE-A)" required>
+      <button class="btn btn-primary">Upload</button>
+    </form>
+  </div></div>
+  <div class="col-md-6"><div class="card card-body">
+    <h5>Create Announcement</h5>
+    <form method="post" action="/staff/announcements">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input class="form-control mb-2" name="title" placeholder="Title" required>
+      <textarea class="form-control mb-2" name="message" placeholder="Message" required></textarea>
+      <select class="form-select mb-2" name="scope"><option>GLOBAL</option><option>BATCH</option><option>INDIVIDUAL</option></select>
+      <input class="form-control mb-2" name="batch" placeholder="Batch (optional)">
+      <input class="form-control mb-2" name="studentId" placeholder="Student ID (optional)">
+      <button class="btn btn-primary">Publish</button>
+    </form>
+  </div></div>
+  <div class="col-md-6"><div class="card card-body">
+    <h5>Assign Coins</h5>
+    <form method="post" action="/staff/coins">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input class="form-control mb-2" name="studentId" placeholder="Student ID" required>
+      <select class="form-select mb-2" name="type"><option>ALPHA</option><option>SIGMA</option><option>PENALTY</option></select>
+      <input class="form-control mb-2" name="amount" type="number" placeholder="Amount" required>
+      <input class="form-control mb-2" name="reason" placeholder="Reason">
+      <button class="btn btn-primary">Assign</button>
+    </form>
+  </div></div>
+</div>
+<div class="card mt-3"><div class="card-body"><h5>Mentoring Students</h5>
+<ul><% (staff?.mentoringStudents || []).forEach((s) => { %><li><%= s._id %></li><% }) %></ul>
+</div></div>
+<%- include('../partials/footer') %>
