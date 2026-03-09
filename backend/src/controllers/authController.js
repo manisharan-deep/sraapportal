@@ -9,9 +9,20 @@ const env = require('../config/env');
 const register = asyncHandler(async (req, res) => {
   const { fullName, email, role, password, enrollmentNumber, username } = req.body;
 
+  // Check for an existing user. If one exists but has no profile (orphaned from
+  // a previous failed registration), clean it up so the user can re-register.
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return res.status(400).json({ message: 'Email already registered' });
+    const hasProfile =
+      (existingUser.role === 'STUDENT' && (await Student.exists({ userId: existingUser._id }))) ||
+      ((existingUser.role === 'STAFF' || existingUser.role === 'ADMIN') &&
+        (await Staff.exists({ userId: existingUser._id })));
+
+    if (hasProfile) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+    // Orphaned user — delete so registration can proceed
+    await User.findByIdAndDelete(existingUser._id);
   }
 
   if (role === 'STUDENT' && enrollmentNumber) {
@@ -37,19 +48,27 @@ const register = asyncHandler(async (req, res) => {
     username: (role === 'STAFF' || role === 'ADMIN') ? username : undefined
   });
 
-  if (role === 'STUDENT') {
-    await Student.create({
-      userId: user._id,
-      branch: 'Not Set',
-      section: 'Not Set',
-      semester: 1
-    });
-  } else if (role === 'STAFF') {
-    await Staff.create({
-      userId: user._id,
-      department: 'Not Set',
-      designation: 'Not Set'
-    });
+  try {
+    if (role === 'STUDENT') {
+      await Student.create({
+        userId: user._id,
+        name: fullName,
+        rollNumber: enrollmentNumber,
+        branch: 'Not Set',
+        section: 'Not Set',
+        semester: 1
+      });
+    } else if (role === 'STAFF') {
+      await Staff.create({
+        userId: user._id,
+        department: 'Not Set',
+        designation: 'Not Set'
+      });
+    }
+  } catch (profileError) {
+    // Roll back — delete the User so the account isn't stuck in a broken state
+    await User.findByIdAndDelete(user._id);
+    throw profileError;
   }
 
   return res.status(201).json({ message: 'Registration successful', userId: user._id });
