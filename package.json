@@ -4,9 +4,10 @@
   "description": "SR University Academic & Administration Portal",
   "main": "backend/src/server.js",
   "scripts": {
-    "start": "cd backend && npm start",
-    "build": "cd backend && npm install",
-    "dev": "cd backend && npm run dev"
+    "start": "cd backend && node src/server.js",
+    "build": "cd backend && npm install --production",
+    "dev": "cd backend && npm run dev",
+    "postinstall": "cd backend && npm install"
   },
   "engines": {
     "node": ">=20"
