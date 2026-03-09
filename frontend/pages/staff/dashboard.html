@@ -26,19 +26,16 @@
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="flex gap-1 overflow-x-auto py-2">
         <button class="tab-btn active" data-tab="overview">Overview</button>
-        <button class="tab-btn" data-tab="attendance">Mark Attendance</button>
+        <button class="tab-btn" data-tab="students">All Students</button>
+        <button class="tab-btn" data-tab="attendance">Bulk Attendance</button>
         <button class="tab-btn" data-tab="announcements">Announcements</button>
         <button class="tab-btn" data-tab="files">Upload Files</button>
         <button class="tab-btn" data-tab="coins">Assign Coins</button>
-        <button class="tab-btn" data-tab="students">My Students</button>
       </div>
     </div>
   </nav>
 
   <main class="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
-
-    <!-- Toast -->
-    <div id="toast" class="fixed top-6 right-6 z-50 hidden rounded-xl px-5 py-3 text-sm font-semibold shadow-xl"></div>
 
     <!-- ── OVERVIEW TAB ── -->
     <section id="tab-overview" class="tab-panel space-y-6">
@@ -53,25 +50,23 @@
           <div class="value text-base text-amber-300 truncate" id="stat-desig">—</div>
         </div>
         <div class="stat-card">
-          <h5>Mentoring Students</h5>
-          <div class="value text-cyan-300" id="stat-mentoring">—</div>
+          <h5>Total Students</h5>
+          <div class="value text-cyan-300" id="stat-total-students">—</div>
         </div>
         <div class="stat-card">
-          <h5>Announcements Made</h5>
-          <div class="value text-slate-200" id="stat-announcements">—</div>
+          <h5>Mentoring Students</h5>
+          <div class="value text-slate-200" id="stat-mentoring">—</div>
         </div>
       </div>
       <div class="panel-card">
         <h2 class="text-base font-semibold text-white mb-3">Quick Actions</h2>
         <div class="flex flex-wrap gap-3">
-          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('attendance')">Mark Attendance</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('students')">View All Students</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('attendance')">Bulk Attendance</button>
           <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('announcements')">Create Announcement</button>
-          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('files')">Upload File</button>
           <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('coins')">Assign Coins</button>
         </div>
       </div>
-
-      <!-- Recent Activity -->
       <div class="grid gap-4 md:grid-cols-2">
         <div class="panel-card">
           <h2 class="text-base font-semibold text-white mb-3">Recent Attendance Entries</h2>
@@ -84,35 +79,116 @@
       </div>
     </section>
 
-    <!-- ── ATTENDANCE TAB ── -->
+    <!-- ── ALL STUDENTS TAB ── -->
+    <section id="tab-students" class="tab-panel hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-2xl font-bold text-white">All Students</h1>
+        <span id="studCount" class="text-sm text-slate-400"></span>
+      </div>
+      <!-- Filters -->
+      <div class="panel-card">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <input id="studSearch" type="text" placeholder="Search name or roll…"
+            class="input-tailwind col-span-2 lg:col-span-2" />
+          <select id="studBranch" class="input-tailwind">
+            <option value="">All Branches</option>
+          </select>
+          <select id="studSection" class="input-tailwind">
+            <option value="">All Sections</option>
+          </select>
+          <select id="studSem" class="input-tailwind">
+            <option value="">All Sems</option>
+          </select>
+          <button id="studFilterBtn" class="btn-primary-tailwind text-sm py-2 px-4">Filter</button>
+        </div>
+      </div>
+      <div class="panel-card overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-white/10">
+            <tr>
+              <th class="px-3 py-3 text-left">Name</th>
+              <th class="px-3 py-3 text-left">Roll No.</th>
+              <th class="px-3 py-3 text-left">Branch</th>
+              <th class="px-3 py-3 text-left">Sec</th>
+              <th class="px-3 py-3 text-left">Sem</th>
+              <th class="px-3 py-3 text-left">CGPA</th>
+              <th class="px-3 py-3 text-left">Attend%</th>
+              <th class="px-3 py-3 text-left">α / σ / P</th>
+              <th class="px-3 py-3 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTableBody" class="divide-y divide-white/5">
+            <tr><td colspan="9" class="px-3 py-8 text-center text-slate-500">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── BULK ATTENDANCE TAB ── -->
     <section id="tab-attendance" class="tab-panel hidden space-y-4">
-      <h1 class="text-2xl font-bold text-white">Mark Attendance</h1>
-      <div class="panel-card max-w-lg">
-        <form id="attendanceForm" class="space-y-4">
+      <h1 class="text-2xl font-bold text-white">Bulk Attendance</h1>
+
+      <!-- Session selector -->
+      <div class="panel-card">
+        <h2 class="text-base font-semibold text-cyan-200 mb-4">Select Class Session</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Student</label>
-            <select id="att-studentId" class="input-tailwind" required>
-              <option value="">Select student…</option>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Branch</label>
+            <select id="attBranch" class="input-tailwind w-full">
+              <option value="">— select branch —</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Course ID</label>
-            <input id="att-courseId" type="text" class="input-tailwind" placeholder="e.g. COURSE_ID" required>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Section</label>
+            <select id="attSection" class="input-tailwind w-full">
+              <option value="">— select section —</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Semester</label>
+            <select id="attSemester" class="input-tailwind w-full">
+              <option value="">— select semester —</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Course</label>
+            <select id="attCourse" class="input-tailwind w-full">
+              <option value="">— select course —</option>
+            </select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">Date</label>
-            <input id="att-date" type="date" class="input-tailwind" required>
+            <input id="attDate" type="date" class="input-tailwind w-full" />
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Status</label>
-            <select id="att-status" class="input-tailwind" required>
-              <option value="PRESENT">Present</option>
-              <option value="ABSENT">Absent</option>
-            </select>
+          <div class="flex items-end">
+            <button id="loadAttStudentsBtn" class="btn-primary-tailwind w-full text-sm py-2 px-4">Load Students</button>
           </div>
-          <button type="submit" class="btn-primary-tailwind w-full py-2 text-sm">Submit Attendance</button>
-          <p id="att-msg" class="text-xs text-center hidden"></p>
-        </form>
+        </div>
+      </div>
+
+      <!-- Mark-all controls -->
+      <div id="attControls" class="hidden flex flex-wrap gap-3 items-center">
+        <button id="markAllPresent" class="rounded-lg bg-emerald-700 hover:bg-emerald-600 px-4 py-2 text-sm font-semibold">✓ All Present</button>
+        <button id="markAllAbsent" class="rounded-lg bg-red-800 hover:bg-red-700 px-4 py-2 text-sm font-semibold">✗ All Absent</button>
+        <span id="attSummary" class="ml-auto text-sm text-slate-400"></span>
+      </div>
+
+      <!-- Students attendance table -->
+      <div id="attTableWrapper" class="panel-card hidden overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-white/10">
+            <tr>
+              <th class="px-3 py-3 text-left">Roll No.</th>
+              <th class="px-3 py-3 text-left">Name</th>
+              <th class="px-3 py-3 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody id="attTableBody" class="divide-y divide-white/5"></tbody>
+        </table>
+      </div>
+
+      <div id="attSubmitRow" class="hidden">
+        <button id="submitBulkAttBtn" class="btn-primary-tailwind px-6 py-2.5 text-sm font-semibold">Save Attendance</button>
       </div>
     </section>
 
@@ -150,10 +226,6 @@
           <button type="submit" class="btn-primary-tailwind w-full py-2 text-sm">Post Announcement</button>
           <p id="ann-msg" class="text-xs text-center hidden"></p>
         </form>
-      </div>
-      <div class="panel-card">
-        <h2 class="text-base font-semibold text-white mb-3">Recent Announcements</h2>
-        <div id="annList" class="space-y-2 text-sm text-slate-400">—</div>
       </div>
     </section>
 
@@ -213,17 +285,19 @@
       </div>
     </section>
 
-    <!-- ── STUDENTS TAB ── -->
-    <section id="tab-students" class="tab-panel hidden space-y-4">
-      <h1 class="text-2xl font-bold text-white">My Mentoring Students</h1>
-      <div class="panel-card">
-        <div id="mentoringStudents" class="overflow-x-auto">
-          <p class="text-sm text-slate-400">Loading…</p>
-        </div>
-      </div>
-    </section>
-
   </main>
+
+  <!-- ── STUDENT DETAIL MODAL ── -->
+  <div id="studentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="relative w-full max-w-2xl rounded-2xl bg-slate-900 border border-white/10 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <button id="closeStudentModal" class="absolute right-4 top-4 text-slate-400 hover:text-white text-2xl leading-none font-bold">&times;</button>
+      <h3 id="modalStudentName" class="mb-5 text-lg font-bold text-white">Student Profile</h3>
+      <div id="modalStudentBody" class="space-y-3 text-sm text-slate-300">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden max-w-xs rounded-xl px-5 py-3 text-sm font-medium shadow-lg"></div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/staff-dashboard.js"></script>
