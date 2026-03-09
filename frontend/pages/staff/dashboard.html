@@ -352,10 +352,46 @@
   </div>
 
   <div id="studentModal" class="hidden">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:780px;">
       <button id="closeStudentModal" class="modal-close">&times;</button>
       <h3 id="modalStudentName" class="modal-title">Student Profile</h3>
-      <div id="modalStudentBody">Loading...</div>
+      <div class="modal-inner-tabs">
+        <button class="modal-tab-btn active" data-mtab="details">Details</button>
+        <button class="modal-tab-btn" data-mtab="attendance">Give Attendance</button>
+        <button class="modal-tab-btn" data-mtab="marks">Enter Marks</button>
+      </div>
+      <div id="mtab-details"><p style="color:#6b7280;">Loading...</p></div>
+      <div id="mtab-attendance" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="form-group" style="margin:0;"><label>Course</label><select id="modal-att-course" class="form-control"><option value="">Select course...</option></select></div>
+          <div class="form-group" style="margin:0;"><label>Date</label><input id="modal-att-date" type="date" class="form-control"></div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">Status</label>
+          <div class="modal-att-toggle">
+            <button id="modal-att-present" class="modal-att-btn present-active" onclick="setModalAttStatus('PRESENT')">Present</button>
+            <button id="modal-att-absent" class="modal-att-btn" onclick="setModalAttStatus('ABSENT')">Absent</button>
+          </div>
+        </div>
+        <button id="modal-att-save" class="btn-primary">Save Attendance</button>
+        <p id="modal-att-msg" class="hidden" style="margin-top:8px;font-size:13px;"></p>
+      </div>
+      <div id="mtab-marks" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:14px;">
+          <div class="form-group" style="margin:0;"><label>Semester</label><select id="modal-marks-sem" class="form-control"><option value="">Select semester</option><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option><option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option><option value="7">Sem 7</option><option value="8">Sem 8</option></select></div>
+          <div><button id="modal-marks-load" class="btn-primary">Load Courses</button></div>
+        </div>
+        <div id="modal-marks-wrapper" class="hidden">
+          <div style="overflow-x:auto;"><table>
+            <thead><tr><th>Code</th><th>Course Name</th><th>CIE (/40)</th><th>ETE (/60)</th></tr></thead>
+            <tbody id="modal-marks-tbody"></tbody>
+          </table></div>
+          <div style="margin-top:12px;display:flex;gap:12px;align-items:center;">
+            <button id="modal-marks-save" class="btn-primary">Save Marks</button>
+            <p id="modal-marks-msg" class="hidden" style="margin:0;font-size:13px;"></p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

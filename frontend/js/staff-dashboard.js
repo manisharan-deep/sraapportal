@@ -40,6 +40,9 @@ let dashboardData = null;
 let filterOptions = { branches: [], sections: [], semesters: [] };
 let attStudents = [];         // students loaded for current attendance session
 let attMap = {};              // pre-existing status map for the loaded session
+let currentModalStudent = null;
+let currentModalMarksCourses = [];
+let currentModalAttStatus = 'PRESENT';
 
 // ── Load dashboard overview ────────────────────────────────────────────────
 async function loadDashboard() {
@@ -207,20 +210,28 @@ document.getElementById('studSearch').addEventListener('keydown', e => {
 // ── Student detail modal ───────────────────────────────────────────────────
 async function openStudentModal(studentId) {
   const modal = document.getElementById('studentModal');
-  const body  = document.getElementById('modalStudentBody');
   const title = document.getElementById('modalStudentName');
   modal.classList.remove('hidden');
   title.textContent = 'Loading…';
-  body.innerHTML = '<p class="text-slate-400">Fetching student data…</p>';
+  switchModalTab('details');
+  document.getElementById('mtab-details').innerHTML = '<p class="text-muted">Fetching student data…</p>';
+  currentModalStudent = null; currentModalMarksCourses = []; currentModalAttStatus = 'PRESENT';
+  setModalAttStatus('PRESENT');
+  document.getElementById('modal-att-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-att-course').innerHTML = '<option value="">Loading courses...</option>';
+  document.getElementById('modal-marks-wrapper').classList.add('hidden');
+  document.getElementById('modal-att-msg').classList.add('hidden');
+  document.getElementById('modal-marks-msg').classList.add('hidden');
+  document.getElementById('modal-marks-sem').value = '';
 
   try {
     const res = await apiRequest(`/staff/students/${studentId}`);
     const data = await res.json();
-    if (!res.ok) { body.innerHTML = `<p class="text-rose-400">${data.message}</p>`; return; }
+    if (!res.ok) { document.getElementById('mtab-details').innerHTML = `<p style="color:#dc2626;">${data.message}</p>`; return; }
     const s = data.student;
     title.textContent = s.name || 'Student Profile';
 
-    body.innerHTML = `
+    document.getElementById('mtab-details').innerHTML = `
       <div style="background:#e0f2fe;border-radius:6px;padding:10px 12px;margin-bottom:10px;">
         <span style="font-size:11px;color:#6b7280;font-weight:600;display:block;">Enrollment Number</span>
         <span class="di-mono">${s.userId?.enrollmentNumber || s.rollNumber || '—'}</span>
@@ -251,8 +262,26 @@ async function openStudentModal(studentId) {
             <span class="badge badge-${(a.status||'').toLowerCase()}">${a.status}</span>
           </div>`).join('')}
       </div>` : ''}`;
+    // Pre-load courses for attendance tab
+    const attQs = new URLSearchParams();
+    if (s.branch) attQs.set('branch', s.branch);
+    if (s.semester) attQs.set('semester', s.semester);
+    const courseRes = await apiRequest(`/staff/courses?${attQs}`);
+    const courseSel = document.getElementById('modal-att-course');
+    courseSel.innerHTML = '<option value="">Select course...</option>';
+    if (courseRes.ok) {
+      const { courses } = await courseRes.json();
+      courses.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c._id;
+        o.textContent = `${c.code} — ${c.name}`;
+        courseSel.appendChild(o);
+      });
+    }
+    if (s.semester) document.getElementById('modal-marks-sem').value = s.semester;
+    currentModalStudent = s;
   } catch (e) {
-    body.innerHTML = '<p style="color:#dc2626;">Failed to load student details</p>';
+    document.getElementById('mtab-details').innerHTML = '<p style="color:#dc2626;">Failed to load student details</p>';
   }
 }
 
@@ -268,6 +297,112 @@ document.getElementById('closeStudentModal').addEventListener('click', () => {
 });
 document.getElementById('studentModal').addEventListener('click', function (e) {
   if (e.target === this) { this.classList.add('hidden'); }
+});
+
+// ── Modal inner tab switching ──────────────────────────────────────────────────
+function switchModalTab(name) {
+  document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.mtab === name));
+  ['details', 'attendance', 'marks'].forEach(t => {
+    document.getElementById(`mtab-${t}`).classList.toggle('hidden', t !== name);
+  });
+}
+document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchModalTab(btn.dataset.mtab));
+});
+
+function setModalAttStatus(status) {
+  currentModalAttStatus = status;
+  document.getElementById('modal-att-present').className = `modal-att-btn${status === 'PRESENT' ? ' present-active' : ''}`;
+  document.getElementById('modal-att-absent').className = `modal-att-btn${status === 'ABSENT' ? ' absent-active' : ''}`;
+}
+
+// ── Modal: save single attendance ─────────────────────────────────────────
+document.getElementById('modal-att-save').addEventListener('click', async () => {
+  if (!currentModalStudent) return;
+  const courseId = document.getElementById('modal-att-course').value;
+  const date     = document.getElementById('modal-att-date').value;
+  const msg      = document.getElementById('modal-att-msg');
+  if (!courseId) { showToast('Select a course', 'error'); return; }
+  if (!date)     { showToast('Select a date', 'error'); return; }
+  msg.classList.add('hidden');
+  try {
+    const res = await apiRequest('/staff/attendance', {
+      method: 'POST',
+      body: JSON.stringify({ studentId: currentModalStudent._id, courseId, date, status: currentModalAttStatus })
+    });
+    const data = await res.json();
+    msg.textContent = data.message || (res.ok ? 'Attendance saved!' : 'Error saving');
+    msg.style.color = res.ok ? '#15803d' : '#dc2626';
+    msg.classList.remove('hidden');
+    if (res.ok) showToast('Attendance saved!');
+  } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
+});
+
+// ── Modal: load marks ───────────────────────────────────────────────────────
+document.getElementById('modal-marks-load').addEventListener('click', async () => {
+  if (!currentModalStudent) { showToast('Open a student first', 'error'); return; }
+  const semester = document.getElementById('modal-marks-sem').value;
+  if (!semester) { showToast('Select a semester', 'error'); return; }
+  const tbody  = document.getElementById('modal-marks-tbody');
+  const wrapper = document.getElementById('modal-marks-wrapper');
+  document.getElementById('modal-marks-msg').classList.add('hidden');
+  try {
+    const qs = new URLSearchParams({ semester });
+    if (currentModalStudent.branch) qs.set('branch', currentModalStudent.branch);
+    const [courseRes, resultRes] = await Promise.all([
+      apiRequest(`/staff/courses?${qs}`),
+      apiRequest(`/staff/results/${currentModalStudent._id}?semester=${semester}`)
+    ]);
+    if (!courseRes.ok) { showToast('Failed to load courses', 'error'); return; }
+    const { courses } = await courseRes.json();
+    currentModalMarksCourses = courses || [];
+    let existingCie = {}, existingEte = {};
+    if (resultRes.ok) {
+      const rData = await resultRes.json();
+      const r = rData.result;
+      if (r) {
+        (r.cie || []).forEach(c => { existingCie[c.courseCode] = c.marks; });
+        (r.ete || []).forEach(c => { existingEte[c.courseCode] = c.marks; });
+      }
+    }
+    if (!currentModalMarksCourses.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#6b7280;padding:14px;">No courses found for this semester.</td></tr>';
+    } else {
+      tbody.innerHTML = currentModalMarksCourses.map(c => `
+        <tr>
+          <td>${c.code}</td>
+          <td>${c.name}</td>
+          <td><input type="number" id="mcie-${c.code}" min="0" max="40" value="${existingCie[c.code] !== undefined ? existingCie[c.code] : ''}" style="width:72px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;"></td>
+          <td><input type="number" id="mete-${c.code}" min="0" max="60" value="${existingEte[c.code] !== undefined ? existingEte[c.code] : ''}" style="width:72px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;"></td>
+        </tr>`).join('');
+    }
+    wrapper.classList.remove('hidden');
+  } catch { showToast('Network error loading marks', 'error'); }
+});
+
+// ── Modal: save marks ────────────────────────────────────────────────────────
+document.getElementById('modal-marks-save').addEventListener('click', async () => {
+  if (!currentModalStudent || !currentModalMarksCourses.length) { showToast('Load courses first', 'error'); return; }
+  const semester = document.getElementById('modal-marks-sem').value;
+  const msg      = document.getElementById('modal-marks-msg');
+  const cie = [], ete = [];
+  currentModalMarksCourses.forEach(c => {
+    const cv = document.getElementById(`mcie-${c.code}`);
+    const ev = document.getElementById(`mete-${c.code}`);
+    if (cv && cv.value !== '') cie.push({ courseCode: c.code, marks: Number(cv.value) });
+    if (ev && ev.value !== '') ete.push({ courseCode: c.code, marks: Number(ev.value) });
+  });
+  try {
+    const res = await apiRequest('/staff/results', {
+      method: 'POST',
+      body: JSON.stringify({ studentId: currentModalStudent._id, semester, cie, ete })
+    });
+    const data = await res.json();
+    msg.textContent = data.message || (res.ok ? 'Marks saved!' : 'Error saving marks');
+    msg.style.color = res.ok ? '#15803d' : '#dc2626';
+    msg.classList.remove('hidden');
+    if (res.ok) showToast('Marks saved!');
+  } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
 });
 
 // ══════════════════════════════════════════════════════════════════════════
