@@ -110,6 +110,38 @@
       .d-none {
         display: none !important;
       }
+
+      /* In-form role selector tabs */
+      .sru-form-role-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #2563eb;
+      }
+      .sru-form-role-tab {
+        flex: 1;
+        padding: 10px 8px;
+        background: #fff;
+        border: none;
+        font-size: 14px;
+        font-weight: 700;
+        color: #2563eb;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+        letter-spacing: 0.03em;
+      }
+      .sru-form-role-tab + .sru-form-role-tab {
+        border-left: 2px solid #2563eb;
+      }
+      .sru-form-role-tab.active {
+        background: #2563eb;
+        color: #fff;
+      }
+      .sru-form-role-tab:hover:not(.active) {
+        background: #eff6ff;
+      }
     </style>
 </head>
 <body class="sru-body">
@@ -138,6 +170,12 @@
       <div id="errorAlert" class="d-none sru-error"></div>
 
       <form id="loginForm">
+        <!-- Role selector – visible inside the card -->
+        <div class="sru-form-role-tabs" role="group" aria-label="Login as">
+          <button type="button" class="sru-form-role-tab active" data-role-btn="STUDENT">Student</button>
+          <button type="button" class="sru-form-role-tab" data-role-btn="STAFF">Staff</button>
+          <button type="button" class="sru-form-role-tab" data-role-btn="ADMIN">Admin</button>
+        </div>
         <input type="hidden" id="role" value="STUDENT">
 
         <label id="identifierLabel" for="identifier">Enrollment Number</label>

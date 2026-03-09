@@ -1,22 +1,36 @@
-// Apply role from URL query param immediately before anything else runs
-(function applyRoleFromUrl() {
+// Central function to switch login role
+function applyRole(role) {
+  if (!['STUDENT', 'STAFF', 'ADMIN'].includes(role)) return;
+  const niceRole = role.charAt(0) + role.slice(1).toLowerCase();
+  const roleInput = document.getElementById('role');
+  const loginTitle = document.getElementById('loginTitle');
+  const identifierLabel = document.getElementById('identifierLabel');
+  const identifierInput = document.getElementById('identifier');
+  if (roleInput) roleInput.value = role;
+  if (loginTitle) loginTitle.textContent = niceRole + ' Login';
+  document.title = niceRole + ' Login - SR University';
+  if (identifierLabel) identifierLabel.textContent = role === 'STUDENT' ? 'Enrollment Number' : 'Username';
+  if (identifierInput) identifierInput.placeholder = role === 'STUDENT' ? 'Enter Enrollment Number' : 'Enter Username';
+  document.querySelectorAll('[data-role-btn]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-role-btn') === role);
+  });
+}
+
+// Apply role from URL on load
+(function() {
   const roleFromUrl = new URLSearchParams(window.location.search).get('role');
-  if (roleFromUrl && ['STUDENT', 'STAFF', 'ADMIN'].includes(roleFromUrl)) {
-    const niceRole = roleFromUrl.charAt(0) + roleFromUrl.slice(1).toLowerCase();
-    const roleInput = document.getElementById('role');
-    const loginTitle = document.getElementById('loginTitle');
-    const identifierLabel = document.getElementById('identifierLabel');
-    const identifierInput = document.getElementById('identifier');
-    if (roleInput) roleInput.value = roleFromUrl;
-    if (loginTitle) loginTitle.textContent = niceRole + ' Login';
-    document.title = niceRole + ' Login - SR University';
-    if (identifierLabel) identifierLabel.textContent = roleFromUrl === 'STUDENT' ? 'Enrollment Number' : 'Username';
-    if (identifierInput) identifierInput.placeholder = roleFromUrl === 'STUDENT' ? 'Enter Enrollment Number' : 'Enter Username';
-    document.querySelectorAll('[data-role-btn]').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-role-btn') === roleFromUrl);
-    });
-  }
+  if (roleFromUrl) applyRole(roleFromUrl);
 })();
+
+// In-form tab button click handlers
+document.querySelectorAll('.sru-form-role-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    applyRole(btn.getAttribute('data-role-btn'));
+    const id = document.getElementById('identifier');
+    id.value = '';
+    id.focus();
+  });
+});
 
 const roleSelect = document.getElementById('role');
 const identifierLabel = document.getElementById('identifierLabel');
@@ -69,13 +83,7 @@ function regenerateCaptcha() {
   captchaInput.value = '';
 }
 
-roleSelect.addEventListener('change', () => {
-  if (roleSelect.value === 'STUDENT') {
-    identifierLabel.textContent = 'Enrollment Number';
-  } else {
-    identifierLabel.textContent = 'Username';
-  }
-});
+// Role switching is now handled by applyRole() + in-form tab buttons above
 
 refreshCaptchaBtn.addEventListener('click', regenerateCaptcha);
 regenerateCaptcha();
