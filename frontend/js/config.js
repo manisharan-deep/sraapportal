@@ -55,9 +55,9 @@ async function apiRequest(endpoint, options = {}) {
   return response;
 }
 
-function requireAuth() {
+function requireAuth(loginUrl = '/login.html') {
   if (!getToken()) {
-    window.location.href = '/login.html';
+    window.location.href = loginUrl;
     return false;
   }
   return true;

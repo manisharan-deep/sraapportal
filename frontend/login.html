@@ -189,10 +189,19 @@
     if (roleFromUrl && ['STUDENT', 'STAFF', 'ADMIN'].includes(roleFromUrl)) {
       const roleInput = document.getElementById('role');
       const roleLabel = document.getElementById('identifierLabel');
+      const identifierInput = document.getElementById('identifier');
       const title = document.getElementById('loginTitle');
+      const niceRole = roleFromUrl.charAt(0) + roleFromUrl.slice(1).toLowerCase();
       roleInput.value = roleFromUrl;
-      title.textContent = `${roleFromUrl.charAt(0)}${roleFromUrl.slice(1).toLowerCase()} Login`;
-      roleLabel.textContent = roleFromUrl === 'STUDENT' ? 'Enrollment Number' : 'Username';
+      title.textContent = `${niceRole} Login`;
+      document.title = `${niceRole} Login - SR University`;
+      if (roleFromUrl === 'STUDENT') {
+        roleLabel.textContent = 'Enrollment Number';
+        identifierInput.placeholder = 'Enter Enrollment Number';
+      } else {
+        roleLabel.textContent = 'Username';
+        identifierInput.placeholder = 'Enter Username';
+      }
       document.querySelectorAll('[data-role-btn]').forEach((btn) => {
         if (btn.getAttribute('data-role-btn') === roleFromUrl) btn.classList.add('active');
       });

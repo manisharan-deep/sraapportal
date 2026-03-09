@@ -1,11 +1,11 @@
-﻿if (!requireAuth() || !checkRole(['STAFF'])) {
+﻿if (!requireAuth('/login.html?role=STAFF') || !checkRole(['STAFF'])) {
   throw new Error('Access denied');
 }
 
 document.getElementById('userName').textContent = getUserName();
 document.getElementById('logoutBtn').addEventListener('click', () => {
   removeToken();
-  window.location.href = '../../login.html';
+  window.location.href = '../../login.html?role=STAFF';
 });
 
 // ── Toast ──────────────────────────────────────────────────────────────────
