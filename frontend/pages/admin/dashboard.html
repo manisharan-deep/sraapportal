@@ -9,6 +9,8 @@
 </head>
 <body class="min-h-screen text-slate-100">
   <div class="page-bg"></div>
+
+  <!-- Header -->
   <header class="relative z-10 border-b border-white/10 bg-slate-950/30 backdrop-blur-xl">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
       <a class="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200" href="../../index.html">SR University Portal</a>
@@ -19,26 +21,153 @@
     </div>
   </header>
 
-  <main class="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
-    <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
+  <!-- Tab Nav -->
+  <nav class="relative z-10 border-b border-white/10 bg-slate-950/20 backdrop-blur-md">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="flex gap-1 overflow-x-auto py-2">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="students">Students</button>
+        <button class="tab-btn" data-tab="staff">Staff</button>
+        <button class="tab-btn" data-tab="approvals">Profile Approvals</button>
+        <button class="tab-btn" data-tab="users">All Users</button>
+      </div>
+    </div>
+  </nav>
 
-    <section class="mt-6 space-y-4">
-      <article class="panel-card">
-        <h2 class="text-lg font-semibold text-white">Pending Profile Approvals</h2>
-        <div id="pendingApprovals" class="mt-3 space-y-2">
-          <p class="text-sm text-slate-400">Loading...</p>
+  <main class="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-6 right-6 z-50 hidden rounded-xl px-5 py-3 text-sm font-semibold shadow-xl transition-all"></div>
+
+    <!-- ── OVERVIEW TAB ── -->
+    <section id="tab-overview" class="tab-panel space-y-6">
+      <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="stat-card">
+          <h5>Total Students</h5>
+          <div class="value text-cyan-300" id="stat-students">—</div>
         </div>
-      </article>
-      <article class="panel-card">
-        <h2 class="text-lg font-semibold text-white">System Users</h2>
-        <div id="usersList" class="mt-3 space-y-2">
-          <p class="text-sm text-slate-400">Loading...</p>
+        <div class="stat-card">
+          <h5>Total Staff</h5>
+          <div class="value text-amber-300" id="stat-staff">—</div>
         </div>
-      </article>
+        <div class="stat-card">
+          <h5>Total Users</h5>
+          <div class="value text-slate-200" id="stat-users">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Pending Approvals</h5>
+          <div class="value text-rose-300" id="stat-pending">—</div>
+        </div>
+      </div>
+      <div class="panel-card">
+        <h2 class="text-base font-semibold text-white mb-3">Quick Actions</h2>
+        <div class="flex flex-wrap gap-3">
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('students')">Manage Students</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('staff')">Manage Staff</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('approvals')">Review Approvals</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('users')">View All Users</button>
+        </div>
+      </div>
     </section>
+
+    <!-- ── STUDENTS TAB ── -->
+    <section id="tab-students" class="tab-panel hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-white">Students</h1>
+        <input id="studentSearch" type="text" class="input-tailwind w-48 text-sm" placeholder="Search name / roll…">
+      </div>
+      <div class="panel-card">
+        <div id="studentsTable" class="overflow-x-auto">
+          <p class="text-sm text-slate-400">Loading…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STAFF TAB ── -->
+    <section id="tab-staff" class="tab-panel hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-white">Staff</h1>
+        <input id="staffSearch" type="text" class="input-tailwind w-48 text-sm" placeholder="Search name…">
+      </div>
+      <div class="panel-card">
+        <div id="staffTable" class="overflow-x-auto">
+          <p class="text-sm text-slate-400">Loading…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── APPROVALS TAB ── -->
+    <section id="tab-approvals" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">Pending Profile Approvals</h1>
+      <div class="panel-card">
+        <div id="pendingApprovals">
+          <p class="text-sm text-slate-400">Loading…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── USERS TAB ── -->
+    <section id="tab-users" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">All Users</h1>
+      <div class="panel-card">
+        <div id="usersList" class="overflow-x-auto">
+          <p class="text-sm text-slate-400">Loading…</p>
+        </div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- Confirm Delete Modal -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="mx-4 w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+      <h3 class="text-lg font-bold text-white" id="modalTitle">Confirm Delete</h3>
+      <p class="mt-2 text-sm text-slate-300" id="modalBody">This action cannot be undone.</p>
+      <div class="mt-5 flex gap-3 justify-end">
+        <button class="btn-secondary-tailwind px-4 py-2 text-sm" id="modalCancel">Cancel</button>
+        <button class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 text-sm rounded-xl transition" id="modalConfirm">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/admin-dashboard.js"></script>
+
+  <style>
+    .tab-btn {
+      padding: 0.45rem 1rem;
+      border-radius: 0.65rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+    .tab-btn.active { color: #22d3ee; background: rgba(34,211,238,0.12); }
+    .panel-card {
+      border-radius: 1rem;
+      border: 1px solid rgba(148,163,184,0.18);
+      background: linear-gradient(145deg, rgba(15,23,42,0.85), rgba(30,41,59,0.72));
+      padding: 1.25rem;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th { padding: 0.6rem 0.75rem; text-align: left; color: #94a3b8; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    tbody td { padding: 0.6rem 0.75rem; color: #e2e8f0; }
+    .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; }
+    .badge-active { background: rgba(34,197,94,0.18); color: #4ade80; }
+    .badge-inactive { background: rgba(239,68,68,0.18); color: #f87171; }
+    .badge-student { background: rgba(34,211,238,0.15); color: #67e8f9; }
+    .badge-staff { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .badge-admin { background: rgba(168,85,247,0.18); color: #c084fc; }
+    .btn-danger { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); color: #f87171; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.8rem; border-radius: 0.6rem; transition: all 0.15s; }
+    .btn-danger:hover { background: rgba(239,68,68,0.3); }
+    .btn-sm { font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.8rem; border-radius: 0.6rem; transition: all 0.15s; }
+    .btn-toggle { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; font-size: 0.75rem; font-weight: 600; padding: 0.3rem 0.8rem; border-radius: 0.6rem; transition: all 0.15s; }
+    .btn-toggle:hover { background: rgba(148,163,184,0.2); }
+  </style>
 </body>
 </html>

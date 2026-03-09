@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(authenticate, authorize('STAFF'));
 
 router.get('/dashboard', staffController.dashboard);
+router.get('/students', staffController.listStudents);
 router.post('/attendance', staffController.markAttendance);
 router.post('/files', staffController.uploadFile);
 router.post('/announcements', validateRequest(announcementSchema), staffController.createAnnouncement);

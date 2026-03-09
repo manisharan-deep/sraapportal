@@ -9,6 +9,8 @@
 </head>
 <body class="min-h-screen text-slate-100">
   <div class="page-bg"></div>
+
+  <!-- Header -->
   <header class="relative z-10 border-b border-white/10 bg-slate-950/30 backdrop-blur-xl">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
       <a class="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200" href="../../index.html">SR University Portal</a>
@@ -19,43 +21,229 @@
     </div>
   </header>
 
-  <main class="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
-    <h1 class="text-2xl font-bold text-white">Staff Dashboard</h1>
+  <!-- Tab Nav -->
+  <nav class="relative z-10 border-b border-white/10 bg-slate-950/20 backdrop-blur-md">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="flex gap-1 overflow-x-auto py-2">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="attendance">Mark Attendance</button>
+        <button class="tab-btn" data-tab="announcements">Announcements</button>
+        <button class="tab-btn" data-tab="files">Upload Files</button>
+        <button class="tab-btn" data-tab="coins">Assign Coins</button>
+        <button class="tab-btn" data-tab="students">My Students</button>
+      </div>
+    </div>
+  </nav>
 
-    <section class="mt-6 grid gap-4 md:grid-cols-2">
-      <article class="panel-card">
-        <h2 class="text-lg font-semibold text-white">Mark Attendance</h2>
-        <p class="mt-1 text-sm text-slate-300">Record daily student presence and attendance status.</p>
-        <button class="btn-primary-tailwind mt-4 px-4 py-2 text-sm">Go to Attendance</button>
-      </article>
-      <article class="panel-card">
-        <h2 class="text-lg font-semibold text-white">Upload Files</h2>
-        <p class="mt-1 text-sm text-slate-300">Share course resources and handouts with students.</p>
-        <button class="btn-primary-tailwind mt-4 px-4 py-2 text-sm">Upload Files</button>
-      </article>
-      <article class="panel-card">
-        <h2 class="text-lg font-semibold text-white">Create Announcement</h2>
-        <p class="mt-1 text-sm text-slate-300">Broadcast updates to your batch or all students.</p>
-        <button class="btn-primary-tailwind mt-4 px-4 py-2 text-sm">Create Announcement</button>
-      </article>
-      <article class="panel-card">
-        <h2 class="text-lg font-semibold text-white">Assign Coins</h2>
-        <p class="mt-1 text-sm text-slate-300">Reward performance and activity with coin updates.</p>
-        <button class="btn-primary-tailwind mt-4 px-4 py-2 text-sm">Assign Coins</button>
-      </article>
+  <main class="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-6 right-6 z-50 hidden rounded-xl px-5 py-3 text-sm font-semibold shadow-xl"></div>
+
+    <!-- ── OVERVIEW TAB ── -->
+    <section id="tab-overview" class="tab-panel space-y-6">
+      <h1 class="text-2xl font-bold text-white">Staff Dashboard</h1>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="stat-card">
+          <h5>Department</h5>
+          <div class="value text-base text-cyan-300 truncate" id="stat-dept">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Designation</h5>
+          <div class="value text-base text-amber-300 truncate" id="stat-desig">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Mentoring Students</h5>
+          <div class="value text-cyan-300" id="stat-mentoring">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Announcements Made</h5>
+          <div class="value text-slate-200" id="stat-announcements">—</div>
+        </div>
+      </div>
+      <div class="panel-card">
+        <h2 class="text-base font-semibold text-white mb-3">Quick Actions</h2>
+        <div class="flex flex-wrap gap-3">
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('attendance')">Mark Attendance</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('announcements')">Create Announcement</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('files')">Upload File</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('coins')">Assign Coins</button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="panel-card">
+          <h2 class="text-base font-semibold text-white mb-3">Recent Attendance Entries</h2>
+          <div id="recentAttendance" class="space-y-2 text-sm text-slate-400">Loading…</div>
+        </div>
+        <div class="panel-card">
+          <h2 class="text-base font-semibold text-white mb-3">Recent Coin Assignments</h2>
+          <div id="recentCoins" class="space-y-2 text-sm text-slate-400">Loading…</div>
+        </div>
+      </div>
     </section>
+
+    <!-- ── ATTENDANCE TAB ── -->
+    <section id="tab-attendance" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">Mark Attendance</h1>
+      <div class="panel-card max-w-lg">
+        <form id="attendanceForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Student</label>
+            <select id="att-studentId" class="input-tailwind" required>
+              <option value="">Select student…</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Course ID</label>
+            <input id="att-courseId" type="text" class="input-tailwind" placeholder="e.g. COURSE_ID" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Date</label>
+            <input id="att-date" type="date" class="input-tailwind" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+            <select id="att-status" class="input-tailwind" required>
+              <option value="PRESENT">Present</option>
+              <option value="ABSENT">Absent</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary-tailwind w-full py-2 text-sm">Submit Attendance</button>
+          <p id="att-msg" class="text-xs text-center hidden"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── ANNOUNCEMENTS TAB ── -->
+    <section id="tab-announcements" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">Announcements</h1>
+      <div class="panel-card max-w-lg">
+        <form id="announcementForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Title</label>
+            <input id="ann-title" type="text" class="input-tailwind" placeholder="Announcement title" required minlength="3">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Message</label>
+            <textarea id="ann-message" class="input-tailwind" rows="4" placeholder="Announcement message…" required minlength="3"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Scope</label>
+            <select id="ann-scope" class="input-tailwind" required>
+              <option value="GLOBAL">Global (All Students)</option>
+              <option value="BATCH">Batch</option>
+              <option value="INDIVIDUAL">Individual Student</option>
+            </select>
+          </div>
+          <div id="ann-batchGroup" class="hidden">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Batch</label>
+            <input id="ann-batch" type="text" class="input-tailwind" placeholder="e.g. CSE-2023">
+          </div>
+          <div id="ann-studentGroup" class="hidden">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Student</label>
+            <select id="ann-studentId" class="input-tailwind">
+              <option value="">Select student…</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary-tailwind w-full py-2 text-sm">Post Announcement</button>
+          <p id="ann-msg" class="text-xs text-center hidden"></p>
+        </form>
+      </div>
+      <div class="panel-card">
+        <h2 class="text-base font-semibold text-white mb-3">Recent Announcements</h2>
+        <div id="annList" class="space-y-2 text-sm text-slate-400">—</div>
+      </div>
+    </section>
+
+    <!-- ── FILES TAB ── -->
+    <section id="tab-files" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">Upload Files</h1>
+      <div class="panel-card max-w-lg">
+        <form id="fileForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">File Name</label>
+            <input id="file-name" type="text" class="input-tailwind" placeholder="e.g. Week 3 Notes" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">File URL / Link</label>
+            <input id="file-url" type="url" class="input-tailwind" placeholder="https://drive.google.com/…" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Batch (optional)</label>
+            <input id="file-batch" type="text" class="input-tailwind" placeholder="e.g. CSE-2023">
+          </div>
+          <button type="submit" class="btn-primary-tailwind w-full py-2 text-sm">Upload File</button>
+          <p id="file-msg" class="text-xs text-center hidden"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── COINS TAB ── -->
+    <section id="tab-coins" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">Assign Coins</h1>
+      <div class="panel-card max-w-lg">
+        <form id="coinsForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Student</label>
+            <select id="coin-studentId" class="input-tailwind" required>
+              <option value="">Select student…</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Coin Type</label>
+            <select id="coin-type" class="input-tailwind" required>
+              <option value="ALPHA">Alpha Coin (Achievement)</option>
+              <option value="SIGMA">Sigma Coin (Participation)</option>
+              <option value="PENALTY">Penalty Coin (Deduction)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Amount</label>
+            <input id="coin-amount" type="number" min="1" class="input-tailwind" placeholder="e.g. 10" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Reason</label>
+            <input id="coin-reason" type="text" class="input-tailwind" placeholder="Reason for assignment…">
+          </div>
+          <button type="submit" class="btn-primary-tailwind w-full py-2 text-sm">Assign Coins</button>
+          <p id="coin-msg" class="text-xs text-center hidden"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── STUDENTS TAB ── -->
+    <section id="tab-students" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">My Mentoring Students</h1>
+      <div class="panel-card">
+        <div id="mentoringStudents" class="overflow-x-auto">
+          <p class="text-sm text-slate-400">Loading…</p>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script src="../../js/config.js"></script>
-  <script>
-    if (!requireAuth() || !checkRole(['STAFF'])) {
-      throw new Error('Access denied');
-    }
-    document.getElementById('userName').textContent = getUserName();
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      removeToken();
-      window.location.href = '../../login.html';
-    });
-  </script>
+  <script src="../../js/staff-dashboard.js"></script>
+
+  <style>
+    .tab-btn { padding: 0.45rem 1rem; border-radius: 0.65rem; font-size: 0.8rem; font-weight: 600; color: #94a3b8; white-space: nowrap; transition: all 0.15s; }
+    .tab-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+    .tab-btn.active { color: #22d3ee; background: rgba(34,211,238,0.12); }
+    .panel-card { border-radius: 1rem; border: 1px solid rgba(148,163,184,0.18); background: linear-gradient(145deg, rgba(15,23,42,0.85), rgba(30,41,59,0.72)); padding: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th { padding: 0.6rem 0.75rem; text-align: left; color: #94a3b8; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    tbody td { padding: 0.6rem 0.75rem; color: #e2e8f0; }
+    .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; }
+    .badge-present { background: rgba(34,197,94,0.18); color: #4ade80; }
+    .badge-absent { background: rgba(239,68,68,0.18); color: #f87171; }
+    .badge-alpha { background: rgba(34,211,238,0.15); color: #67e8f9; }
+    .badge-sigma { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .badge-penalty { background: rgba(239,68,68,0.18); color: #f87171; }
+  </style>
 </body>
 </html>
