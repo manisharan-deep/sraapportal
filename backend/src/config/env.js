@@ -2,11 +2,14 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Accept common provider names for the MongoDB connection variable.
+const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.DATABASE_URL;
+
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 3000),
   baseUrl: process.env.BASE_URL || 'http://localhost:3000',
-  mongoUri: process.env.MONGO_URI,
+  mongoUri,
   redisHost: process.env.REDIS_HOST || 'localhost',
   redisPort: Number(process.env.REDIS_PORT || 6379),
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
@@ -27,10 +30,16 @@ const env = {
   dailyAttendanceMinute: Number(process.env.DAILY_ATTENDANCE_MINUTE || 0)
 };
 
-const required = ['mongoUri', 'jwtAccessSecret', 'jwtRefreshSecret', 'sessionSecret'];
-for (const key of required) {
+const required = {
+  mongoUri: 'MONGO_URI (or MONGODB_URI / DATABASE_URL)',
+  jwtAccessSecret: 'JWT_ACCESS_SECRET',
+  jwtRefreshSecret: 'JWT_REFRESH_SECRET',
+  sessionSecret: 'SESSION_SECRET'
+};
+
+for (const [key, displayName] of Object.entries(required)) {
   if (!env[key]) {
-    throw new Error(`Missing required env variable: ${key}`);
+    throw new Error(`Missing required env variable: ${displayName}`);
   }
 }
 
