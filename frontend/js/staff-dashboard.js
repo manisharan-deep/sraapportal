@@ -3,6 +3,23 @@
 }
 
 document.getElementById('userName').textContent = getUserName();
+
+function setStaffProfileIcon(staff) {
+  const icon = document.getElementById('profileIcon');
+  if (!icon) return;
+  const photo = staff && staff.profilePhoto;
+  if (photo) {
+    icon.style.backgroundImage = `url(${photo})`;
+    icon.style.backgroundSize = 'cover';
+    icon.style.backgroundPosition = 'center';
+    icon.textContent = '';
+  } else {
+    icon.style.backgroundImage = '';
+    const name = (staff && (staff.userId?.fullName || staff.name)) || getUserName() || '';
+    const initials = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    icon.textContent = initials || 'S';
+  }
+}
 document.getElementById('logoutBtn').addEventListener('click', () => {
   removeToken();
   window.location.href = '../../login.html?role=STAFF';
@@ -55,6 +72,7 @@ async function loadDashboard() {
     document.getElementById('stat-desig').textContent = data.staff?.designation || '—';
     document.getElementById('stat-mentoring').textContent = (data.staff?.mentoringStudents || []).length;
     document.getElementById('stat-total-students').textContent = data.totalStudents ?? '—';
+    setStaffProfileIcon(data.staff);
 
     // Recent attendance
     const attEl = document.getElementById('recentAttendance');
