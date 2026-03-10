@@ -11,8 +11,7 @@ function setProfileIcon(student) {
   const icon = document.getElementById('profileIcon');
   if (!icon) return;
 
-  const cachedPhoto = localStorage.getItem('studentProfilePhoto') || '';
-  const activePhoto = (student && student.profilePhoto) ? student.profilePhoto : cachedPhoto;
+  const activePhoto = (student && student.profilePhoto) ? student.profilePhoto : '';
 
   if (activePhoto) {
     icon.style.backgroundImage = `url(${activePhoto})`;
@@ -24,6 +23,7 @@ function setProfileIcon(student) {
   }
 
   icon.style.backgroundImage = '';
+  localStorage.removeItem('studentProfilePhoto');
   icon.textContent = '';
 }
 

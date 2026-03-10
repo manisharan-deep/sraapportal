@@ -12,6 +12,7 @@ function removeToken() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userName');
+  localStorage.removeItem('studentProfilePhoto');
 }
 
 function getUserRole() {

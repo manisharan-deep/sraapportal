@@ -9,7 +9,7 @@ const profileForm = document.getElementById('profileForm');
 const profilePhotoInput = document.getElementById('profilePhotoInput');
 const profilePhotoDisplay = document.getElementById('profilePhotoDisplay');
 const PROFILE_PHOTO_KEY = 'studentProfilePhoto';
-let profilePhotoData = localStorage.getItem(PROFILE_PHOTO_KEY) || '';
+let profilePhotoData = '';
 
 function renderProfilePhoto(photoData) {
   if (!profilePhotoDisplay) return;
@@ -75,9 +75,11 @@ async function loadProfile() {
         document.getElementById('motherMobile').value = student.motherMobile || '';
         document.getElementById('phone').value = student.phone || '';
         document.getElementById('email').value = student.email || '';
-        profilePhotoData = student.profilePhoto || localStorage.getItem(PROFILE_PHOTO_KEY) || '';
+        profilePhotoData = student.profilePhoto || '';
         if (profilePhotoData) {
           localStorage.setItem(PROFILE_PHOTO_KEY, profilePhotoData);
+        } else {
+          localStorage.removeItem(PROFILE_PHOTO_KEY);
         }
         renderProfilePhoto(profilePhotoData);
       document.getElementById('dateOfBirth').value = student.dateOfBirth ? student.dateOfBirth.split('T')[0] : '';
