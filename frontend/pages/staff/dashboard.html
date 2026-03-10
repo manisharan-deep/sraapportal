@@ -9,6 +9,85 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #f5f5f5; }
 
+    /* ── Header ── */
+    .dashboard-header {
+      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .sru-logo { font-size: 32px; font-weight: bold; }
+    .header-title { font-size: 28px; font-weight: 600; }
+
+    /* ── Welcome Banner ── */
+    .welcome-banner {
+      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+      padding: 8px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #000;
+      font-weight: 500;
+    }
+    .no-due { color: #d32f2f; font-weight: 600; }
+    .welcome-text { flex: 1; text-align: center; overflow: hidden; }
+    .welcome-text-scroll { overflow: hidden; white-space: nowrap; }
+    .scroll-track {
+      display: inline-block;
+      padding-left: 100%;
+      animation: sru-welcome-scroll 18s linear infinite;
+    }
+    @keyframes sru-welcome-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-200%); }
+    }
+    .welcome-actions { display: flex; gap: 15px; align-items: center; }
+    .welcome-actions a { color: #000; text-decoration: none; font-weight: 600; }
+    .profile-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #2d4f96 center/cover no-repeat;
+      border: 2px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+      cursor: pointer; overflow: hidden;
+    }
+
+    /* ── Info Cards ── */
+    .info-cards {
+      display: flex; gap: 15px; padding: 20px 30px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .info-card {
+      border-radius: 8px; padding: 25px; color: white;
+      min-width: 180px; flex: 1; max-width: 220px;
+    }
+    .info-card h3 { font-size: 32px; margin: 10px 0 5px; }
+    .info-card p  { font-size: 13px; margin: 3px 0; }
+    .info-card button {
+      background: rgba(0,0,0,0.2); border: none; color: white;
+      padding: 8px 16px; border-radius: 20px; margin-top: 10px;
+      cursor: pointer; font-size: 12px;
+    }
+    .card-cyan   { background: linear-gradient(135deg, #00acc1 0%, #0097a7 100%); }
+    .card-green  { background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%); }
+    .card-yellow { background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%); }
+    .card-red    { background: linear-gradient(135deg, #ef5350 0%, #e53935 100%); }
+    .card-teal   { background: linear-gradient(135deg, #26a69a 0%, #00897b 100%); }
+    .card-blue   { background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%); }
+
+    /* ── Table containers ── */
+    .table-container { flex: 1; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .table-header { background: #424242; color: white; padding: 15px; font-size: 16px; font-weight: 600; text-align: center; }
+
+    /* ── Footer ── */
+    .footer { background: #2d4f96; color: white; padding: 20px 30px; text-align: center; margin-top: 40px; }
+    .footer-links { display: flex; justify-content: center; gap: 30px; margin-bottom: 10px; flex-wrap: wrap; }
+    .footer-links a { color: white; text-decoration: none; }
+    .footer-copyright { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 10px; }
+
     .staff-tab-bar {
       background: #1e3a6d;
       padding: 0 30px;
@@ -99,15 +178,6 @@
     .modal-box { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
     .modal-close { position: absolute; right: 16px; top: 16px; width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9; border: none; font-size: 20px; cursor: pointer; color: #64748b; line-height: 1; }
     .modal-close:hover { background: #e2e8f0; color: #0f172a; }
-
-    .profile-icon {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: #2d4f96 center/cover no-repeat;
-      border: 2px solid #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
-      cursor: pointer; overflow: hidden;
-    }
     .modal-title { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 14px; }
     .modal-inner-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
     .modal-tab-btn { padding: 6px 16px; border-radius: 6px; border: 1px solid #e5e7eb; background: #f8fafc; color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
