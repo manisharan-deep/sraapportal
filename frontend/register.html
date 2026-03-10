@@ -4,63 +4,160 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register - SR University Portal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .password-suggestion-container {
+      margin-top: 12px;
+      padding: 15px;
+      background: #f5f9ff;
+      border: 1px solid #d9e2ff;
+      border-radius: 4px;
+    }
+    .password-suggestion-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .password-suggestion-toggle span {
+      font-size: 13px;
+      color: #555;
+      font-weight: 500;
+    }
+    .suggest-btn {
+      padding: 6px 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .suggest-btn:hover { background: #1d4ed8; }
+    .suggest-btn:active { transform: scale(0.98); }
+    .d-none { display: none !important; }
+    /* Role selector tabs */
+    .sru-form-role-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #2563eb;
+    }
+    .sru-form-role-tab {
+      flex: 1;
+      padding: 10px 8px;
+      background: #fff;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      color: #2563eb;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      letter-spacing: 0.03em;
+    }
+    .sru-form-role-tab + .sru-form-role-tab {
+      border-left: 2px solid #2563eb;
+    }
+    .sru-form-role-tab.active {
+      background: #2563eb;
+      color: #fff;
+    }
+    .sru-form-role-tab:hover:not(.active) { background: #eff6ff; }
+  </style>
 </head>
-<body class="min-h-screen text-slate-100">
-  <div class="page-bg"></div>
-  <main class="relative z-10 grid min-h-screen place-items-center px-6 py-10">
-    <section class="w-full max-w-xl rounded-3xl border border-white/10 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-8 fade-in-up">
-      <div class="mb-6">
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Create Account</p>
-        <h1 class="mt-2 text-2xl font-bold text-white">Join SR University Portal</h1>
+<body class="sru-body">
+  <header class="sru-header">
+    <div class="sru-header-inner">
+      <a href="index.html" class="sru-brand" aria-label="SR University home">
+        <span class="sru-logo">SRU</span>
+        <span class="sru-brand-text">SR UNIVERSITY</span>
+      </a>
+      <div class="sru-header-actions">
+        <a href="login.html?role=STAFF" class="sru-pill">STAFF</a>
+        <a href="login.html?role=STUDENT" class="sru-pill">STUDENT</a>
+        <a href="login.html?role=ADMIN" class="sru-pill">ADMIN</a>
       </div>
-      <div id="errorAlert" class="d-none rounded-xl border border-rose-300/40 bg-rose-400/20 px-3 py-2 text-sm text-rose-100"></div>
-      <div id="successAlert" class="d-none rounded-xl border border-emerald-300/40 bg-emerald-400/20 px-3 py-2 text-sm text-emerald-100"></div>
-      <form id="registerForm" class="mt-4 space-y-4">
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-200">Full Name</label>
-          <input type="text" class="input-tailwind" id="fullName" required>
+    </div>
+  </header>
+
+  <div class="sru-marquee">All final year students are hereby informed to clear the fee before course registration.</div>
+
+  <main class="sru-login-main solo-login">
+    <section class="sru-login-card login-animated-card">
+      <h1>Create Account</h1>
+
+      <div id="errorAlert" class="d-none sru-error"></div>
+      <div id="successAlert" class="d-none" style="background:#dcfce7;border:1px solid #86efac;color:#15803d;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:0.9rem;"></div>
+
+      <form id="registerForm">
+        <!-- Role tabs -->
+        <div class="sru-form-role-tabs" role="group" aria-label="Register as">
+          <button type="button" class="sru-form-role-tab active" data-role-tab="STUDENT">Student</button>
+          <button type="button" class="sru-form-role-tab" data-role-tab="STAFF">Staff</button>
         </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-200">Email</label>
-          <input type="email" class="input-tailwind" id="email" required>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-200">Role</label>
-          <select class="input-tailwind" id="role" required>
-                  <option value="STUDENT">Student</option>
-                  <option value="STAFF">Staff</option>
-          </select>
-        </div>
+        <!-- Hidden select keeps register.js working unchanged -->
+        <select id="role" class="d-none" required>
+          <option value="STUDENT">Student</option>
+          <option value="STAFF">Staff</option>
+        </select>
+
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="Enter Full Name" required>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Enter Email" required>
+
         <div id="enrollmentGroup">
-          <label class="mb-1 block text-sm font-medium text-slate-200">Enrollment Number</label>
-          <input type="text" class="input-tailwind" id="enrollmentNumber">
+          <label for="enrollmentNumber">Enrollment Number</label>
+          <input type="text" id="enrollmentNumber" placeholder="Enter Enrollment Number">
         </div>
-        <div class="d-none" id="usernameGroup">
-          <label class="mb-1 block text-sm font-medium text-slate-200">Username</label>
-          <input type="text" class="input-tailwind" id="username">
+        <div id="usernameGroup" class="d-none">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="Enter Username">
         </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-200">Password</label>
-          <input type="password" class="input-tailwind" id="password" required minlength="8">
-          <div class="mt-2 flex items-center gap-2">
-            <button type="button" id="suggestPasswordBtn" class="btn-secondary-tailwind text-xs px-3 py-1.5">Suggest Strong Password</button>
-            <span id="passwordStrength" class="text-xs text-slate-300">Strength: -</span>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter Password" required minlength="8">
+
+        <div class="password-suggestion-container">
+          <div class="password-suggestion-toggle">
+            <span>Need a strong password?</span>
+            <button type="button" id="suggestPasswordBtn" class="suggest-btn">Suggest</button>
           </div>
-          <p id="suggestedPasswordText" class="mt-2 text-xs text-cyan-200 d-none"></p>
+          <span id="passwordStrength" style="font-size:12px;color:#555;font-weight:500;">Strength: -</span>
+          <p id="suggestedPasswordText" class="d-none" style="font-size:12px;color:#2563eb;margin-top:8px;word-break:break-all;"></p>
         </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-200">Confirm Password</label>
-          <input type="password" class="input-tailwind" id="confirmPassword" required>
-        </div>
-        <button type="submit" class="btn-primary-tailwind w-full">Register</button>
+
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+
+        <button type="submit" class="sru-btn-primary full">Register</button>
       </form>
-      <p class="mt-5 text-center text-sm text-slate-300">Already have an account? <a href="login.html" class="font-semibold text-cyan-200 hover:text-cyan-100">Login</a></p>
-      <p class="mt-3 text-center text-xs text-slate-400"><a href="index.html" class="hover:text-slate-200">Back to home</a></p>
+
+      <p class="sru-auth-meta">Already have an account? <a href="login.html">Login</a></p>
+      <p style="text-align:center;margin-top:8px;font-size:0.85rem;"><a href="index.html" style="color:#64748b;">Back to home</a></p>
     </section>
   </main>
+
+  <footer class="sru-footer">&copy; 2025, SR University. All Rights Reserved.</footer>
+
   <script src="js/config.js"></script>
   <script src="js/register.js"></script>
+  <script>
+    // Role tab switching — syncs the hidden <select> so register.js listeners fire normally
+    document.querySelectorAll('.sru-form-role-tab').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.sru-form-role-tab').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var roleSelect = document.getElementById('role');
+        roleSelect.value = btn.getAttribute('data-role-tab');
+        roleSelect.dispatchEvent(new Event('change'));
+      });
+    });
+  </script>
 </body>
 </html>

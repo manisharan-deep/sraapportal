@@ -2,167 +2,423 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.  <title>Staff Dashboard - SR University</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Dashboard - SR University</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../../css/style.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #f5f5f5; }
-
-    .dashboard-header {
-      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
-      color: white; padding: 15px 30px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .header-left { display: flex; align-items: center; gap: 20px; }
-    .sru-logo { font-size: 32px; font-weight: bold; }
-    .header-title { font-size: 28px; font-weight: 600; }
-
-    .nav-bar {
-      background: #2d4f96; padding: 0 30px;
-      display: flex; gap: 0; overflow-x: auto;
-    }
-    .tab-btn {
-      color: rgba(255,255,255,0.8); padding: 12px 18px;
-      font-size: 14px; font-weight: 500; cursor: pointer;
-      border: none; background: none; white-space: nowrap;
-      border-bottom: 3px solid transparent; transition: all 0.2s;
-    }
-    .tab-btn:hover { color: white; background: rgba(255,255,255,0.1); }
-    .tab-btn.active { color: white; border-bottom: 3px solid #ffd700; font-weight: 700; }
-
-    .welcome-banner {
-      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
-      padding: 8px 30px; display: flex;
-      justify-content: space-between; align-items: center; color: #000; font-weight: 500;
-    }
-    .welcome-text { flex: 1; text-align: center; }
-    .welcome-actions { display: flex; gap: 14px; align-items: center; }
-    .staff-tag { background: #2d4f96; color: white; padding: 3px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; }
-    .logout-btn { background: #2d4f96; color: white; border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; }
-
-    .info-cards-row {
-      display: flex; gap: 15px; padding: 20px 30px;
-      flex-wrap: wrap; justify-content: center;
-    }
-    .info-card { border-radius: 8px; padding: 22px; color: white; min-width: 160px; flex: 1; max-width: 210px; }
-    .info-card h3 { font-size: 28px; margin: 8px 0 4px; }
-    .info-card p { font-size: 13px; margin: 2px 0; }
-    .card-btn { background: rgba(0,0,0,0.2); border: none; color: white; padding: 7px 14px; border-radius: 20px; margin-top: 10px; cursor: pointer; font-size: 12px; display: inline-block; }
-    .card-btn:hover { background: rgba(0,0,0,0.35); }
-    .card-cyan  { background: linear-gradient(135deg, #00acc1 0%, #0097a7 100%); }
-    .card-green { background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%); }
-    .card-yellow{ background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%); }
-    .card-red   { background: linear-gradient(135deg, #ef5350 0%, #e53935 100%); }
-    .card-teal  { background: linear-gradient(135deg, #26a69a 0%, #00897b 100%); }
-    .card-blue  { background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%); }
-
-    .tab-panel { padding: 20px 30px; }
-    .tab-panel.hidden { display: none !important; }
-
-    .section-card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-    .section-card h2 { font-size: 17px; font-weight: 700; color: #1e3a6d; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb; }
-
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 4px; }
-    .form-control { width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827; }
-    .form-control:focus { outline: none; border-color: #2d4f96; box-shadow: 0 0 0 2px rgba(45,79,150,0.15); }
-    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-    .form-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
-    @media (max-width: 900px) { .form-grid-3,.form-grid-4 { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 600px) { .form-grid-2,.form-grid-3,.form-grid-4 { grid-template-columns: 1fr; } }
-
-    .btn-primary { background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-    .btn-primary:hover { opacity: 0.88; }
-    .btn-primary:disabled { opacity: 0.5; cursor: default; }
-    .btn-green { background: #43a047; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .btn-green:hover { background: #2e7d32; }
-    .btn-red { background: #e53935; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .btn-red:hover { background: #b71c1c; }
-    .btn-view { background: #1e88e5; color: white; border: none; padding: 5px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .btn-view:hover { background: #1565c0; }
-
-    .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    .table-header { background: #424242; color: white; padding: 13px 16px; font-size: 15px; font-weight: 600; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 11px 13px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-    th { background: #f5f5f5; font-weight: 700; color: #333; font-size: 13px; }
-    tr:hover td { background: #fafafa; }
-
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-    .badge-present { background: #dcfce7; color: #15803d; }
-    .badge-absent  { background: #fee2e2; color: #dc2626; }
-    .badge-alpha   { background: #e0f2fe; color: #0369a1; }
-    .badge-sigma   { background: #fef3c7; color: #92400e; }
-    .badge-penalty { background: #fee2e2; color: #dc2626; }
-    .att-good { color: #15803d; font-weight: 600; }
-    .att-warn { color: #b45309; font-weight: 600; }
-    .att-bad  { color: #dc2626; font-weight: 600; }
-
-    .att-btn-wrap { display: inline-flex; border-radius: 5px; overflow: hidden; border: 1px solid #d1d5db; }
-    .att-btn { padding: 5px 16px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; transition: background 0.15s; }
-    .att-btn-p-active { background: #43a047; color: white; }
-    .att-btn-a-active { background: #e53935; color: white; }
-    .att-btn-inactive { background: #f5f5f5; color: #9ca3af; }
-    .att-btn-inactive:hover { background: #e5e7eb; color: #374151; }
-
-    #studentModal { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
-    #studentModal.hidden { display: none !important; }
-    .modal-box { background: white; border-radius: 12px; padding: 28px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; }
-    .modal-close { position: absolute; right: 18px; top: 14px; font-size: 26px; cursor: pointer; color: #6b7280; line-height: 1; border: none; background: none; }
-    .modal-close:hover { color: #111; }
-    .modal-title { font-size: 18px; font-weight: 700; color: #1e3a6d; margin-bottom: 16px; }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .detail-item { background: #f8fafc; border-radius: 6px; padding: 10px 12px; }
-    .di-label { display: block; font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 2px; }
-    .di-val { font-size: 14px; color: #111827; font-weight: 500; }
-    .di-mono { font-family: monospace; color: #1e88e5; font-weight: 700; font-size: 14px; }
-
-    .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 6px; background: #f8fafc; }
-
-    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-    #toast.hidden { display: none !important; }
-    #toast.toast-success { background: #15803d; color: white; }
-    #toast.toast-error   { background: #dc2626; color: white; }
-
+    /* ─── JS-referenced classes (restyled for dark glassmorphism) ─── */
     .hidden { display: none !important; }
-    .quick-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-    .text-muted { color: #6b7280; font-size: 13px; }
 
-    .dash-footer { background: #2d4f96; color: white; padding: 16px 30px; text-align: center; margin-top: 40px; }
-    .footer-links { display: flex; justify-content: center; gap: 28px; margin-bottom: 8px; flex-wrap: wrap; }
-    .footer-links a { color: white; text-decoration: none; font-size: 14px; }
-    .footer-copyright { font-size: 13px; color: rgba(255,255,255,0.8); }
+    .tab-btn {
+      padding: 0.45rem 1rem; border-radius: 0.55rem; font-size: 0.83rem;
+      font-weight: 600; color: rgba(148,163,184,0.85);
+      border: 1px solid transparent; background: transparent;
+      cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.07); }
+    .tab-btn.active { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.6); color: #a5b4fc; }
+
+    .modal-tab-btn {
+      padding: 0.38rem 0.9rem; border-radius: 0.55rem;
+      border: 1px solid rgba(148,163,184,0.2); background: rgba(30,41,59,0.5);
+      color: #94a3b8; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .modal-tab-btn.active { background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.65); color: #a5b4fc; }
+
+    .modal-att-toggle { display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid rgba(148,163,184,0.25); }
+    .modal-att-btn { padding: 8px 28px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; background: rgba(30,41,59,0.7); color: #64748b; transition: all 0.2s; }
+    .modal-att-btn.present-active { background: #16a34a; color: white; }
+    .modal-att-btn.absent-active  { background: #dc2626; color: white; }
+
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 9999px; font-size: 11px; font-weight: 700; }
+    .badge-present { background: rgba(22,163,74,0.2);  color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .badge-absent  { background: rgba(220,38,38,0.2);  color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+    .badge-alpha   { background: rgba(6,182,212,0.2);  color: #22d3ee; border: 1px solid rgba(34,211,238,0.3); }
+    .badge-sigma   { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .badge-penalty { background: rgba(239,68,68,0.2);  color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    .att-good { color: #4ade80; font-weight: 700; }
+    .att-warn { color: #fbbf24; font-weight: 700; }
+    .att-bad  { color: #f87171; font-weight: 700; }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-item { background: rgba(15,23,42,0.7); border: 1px solid rgba(148,163,184,0.12); border-radius: 8px; padding: 10px 12px; }
+    .di-label { display: block; font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+    .di-val   { font-size: 13px; color: #e2e8f0; font-weight: 500; }
+    .di-mono  { font-family: monospace; color: #67e8f9; font-weight: 700; font-size: 14px; }
+
+    .recent-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 12px; border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 8px; margin-bottom: 6px;
+      background: rgba(15,23,42,0.5); font-size: 13px; color: #cbd5e1;
+    }
+
+    .btn-view {
+      background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+      color: #a5b4fc; padding: 4px 14px; border-radius: 6px;
+      font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-view:hover { background: rgba(99,102,241,0.35); }
+
+    .text-muted { color: #64748b; font-size: 13px; }
+
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+             padding: 12px 22px; border-radius: 12px; font-size: 14px; font-weight: 700;
+             box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    #toast.toast-success { background: linear-gradient(135deg,#15803d,#16a34a); color: white; }
+    #toast.toast-error   { background: linear-gradient(135deg,#b91c1c,#dc2626); color: white; }
+
+    .staff-table { width: 100%; border-collapse: collapse; }
+    .staff-table th {
+      background: rgba(15,23,42,0.85); color: #64748b; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em; padding: 11px 13px;
+      text-align: left; border-bottom: 1px solid rgba(148,163,184,0.18);
+    }
+    .staff-table td { padding: 11px 13px; color: #e2e8f0; font-size: 13px; border-bottom: 1px solid rgba(148,163,184,0.08); }
+    .staff-table tr:hover td { background: rgba(99,102,241,0.06); }
+
+    .marks-input {
+      width: 76px; padding: 5px 8px; border: 1px solid rgba(148,163,184,0.3);
+      border-radius: 6px; background: rgba(15,23,42,0.7); color: #e2e8f0; font-size: 13px;
+    }
+    .marks-input:focus { outline: none; border-color: rgba(99,102,241,0.65); }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.25); border-radius: 3px; }
   </style>
 </head>
-<body>
+<body class="min-h-screen text-slate-100">
+  <div class="page-bg"></div>
 
-  <div class="dashboard-header">
-    <div class="header-left">
-      <div class="sru-logo">[ sru</div>
-      <div class="header-title">SR UNIVERSITY</div>
+  <!-- ── Header ── -->
+  <header class="relative z-10 border-b border-white/10 bg-slate-950/30 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+      <div class="flex items-center gap-3">
+        <span class="text-xl font-black text-indigo-400 tracking-widest">[ sru</span>
+        <span class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 hidden sm:inline">SR University</span>
+        <span class="ml-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 px-2.5 py-0.5 text-xs font-bold text-indigo-300 uppercase tracking-wider">Staff</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-slate-300 hidden sm:inline">Welcome, <span id="userName" class="font-semibold text-white"></span></span>
+        <button class="btn-secondary-tailwind px-4 py-2 text-sm" id="logoutBtn">Logout</button>
+      </div>
     </div>
-    <div class="header-title">Staff Portal</div>
-  </div>
+  </header>
 
-  <nav class="nav-bar">
-    <button class="tab-btn active" data-tab="overview">Overview</button>
-    <button class="tab-btn" data-tab="students">All Students</button>
-    <button class="tab-btn" data-tab="announcements">Announcements</button>
-    <button class="tab-btn" data-tab="files">Upload Files</button>
-    <button class="tab-btn" data-tab="coins">Assign Coins</button>
-    <button class="tab-btn" data-tab="marks">Enter Marks</button>
+  <!-- ── Tab Navigation ── -->
+  <nav class="relative z-10 border-b border-white/10 bg-slate-950/20 backdrop-blur-md">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="flex gap-1 overflow-x-auto py-2">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="students">All Students</button>
+        <button class="tab-btn" data-tab="announcements">Announcements</button>
+        <button class="tab-btn" data-tab="files">Upload Files</button>
+        <button class="tab-btn" data-tab="coins">Assign Coins</button>
+        <button class="tab-btn" data-tab="marks">Enter Marks</button>
+      </div>
+    </div>
   </nav>
 
-  <div class="welcome-banner">
-    <span class="staff-tag">STAFF</span>
-    <div class="welcome-text">
-      Welcome, <strong id="userName">Staff Member</strong> &nbsp;|&nbsp; SR University Staff Portal
-    </div>
-    <div class="welcome-actions">
-      <button class="logout-btn" id="logoutBtn">Logout</button>
+  <!-- ── Main Content ── -->
+  <main class="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
+
+    <div id="toast" class="hidden"></div>
+
+    <!-- ════ OVERVIEW ════ -->
+    <section id="tab-overview" class="tab-panel space-y-6">
+      <h1 class="text-2xl font-bold text-white">Staff Dashboard</h1>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="stat-card">
+          <h5>Department</h5>
+          <div class="mt-1 text-base font-bold text-indigo-300 truncate" id="stat-dept">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Designation</h5>
+          <div class="mt-1 text-base font-bold text-violet-300 truncate" id="stat-desig">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Total Students</h5>
+          <div class="value text-cyan-300" id="stat-total-students">—</div>
+        </div>
+        <div class="stat-card">
+          <h5>Mentoring Students</h5>
+          <div class="value text-amber-300" id="stat-mentoring">—</div>
+        </div>
+      </div>
+      <div class="panel-card">
+        <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Quick Actions</h2>
+        <div class="flex flex-wrap gap-3">
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('students')">View All Students</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('announcements')">Create Announcement</button>
+          <button class="btn-primary-tailwind px-4 py-2 text-sm" onclick="switchTab('coins')">Assign Coins</button>
+        </div>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="panel-card">
+          <h2 class="text-sm font-semibold text-white mb-3">Recent Attendance Entries</h2>
+          <div id="recentAttendance" class="text-sm text-slate-400">Loading...</div>
+        </div>
+        <div class="panel-card">
+          <h2 class="text-sm font-semibold text-white mb-3">Recent Coin Assignments</h2>
+          <div id="recentCoins" class="text-sm text-slate-400">Loading...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ STUDENTS ════ -->
+    <section id="tab-students" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">All Students</h1>
+      <div class="panel-card space-y-4">
+        <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-400">Search &amp; Filter</h2>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <input id="studSearch" type="text" placeholder="Search name or roll..." class="input-tailwind text-sm">
+          <select id="studBranch" class="input-tailwind text-sm"><option value="">All Branches</option></select>
+          <select id="studSection" class="input-tailwind text-sm"><option value="">All Sections</option></select>
+          <select id="studSem" class="input-tailwind text-sm"><option value="">All Sems</option></select>
+        </div>
+        <div class="flex items-center gap-4">
+          <button id="studFilterBtn" class="btn-primary-tailwind px-5 py-2 text-sm">Filter</button>
+          <span id="studCount" class="text-muted"></span>
+        </div>
+      </div>
+      <div class="panel-card overflow-hidden" style="padding:0;">
+        <div class="overflow-x-auto">
+          <table class="staff-table">
+            <thead>
+              <tr><th>Name</th><th>Roll No.</th><th>Branch</th><th>Sec</th><th>Sem</th><th>CGPA</th><th>Attend%</th><th>a / s / P</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="studentsTableBody">
+              <tr><td colspan="9" class="text-center text-slate-400 py-8">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ ANNOUNCEMENTS ════ -->
+    <section id="tab-announcements" class="tab-panel hidden space-y-6">
+      <h1 class="text-2xl font-bold text-white">Announcements</h1>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div class="panel-card">
+          <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">Create Announcement</h2>
+          <form id="announcementForm" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Title</label>
+              <input id="ann-title" type="text" class="input-tailwind" placeholder="Announcement title" required minlength="3">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Message</label>
+              <textarea id="ann-message" class="input-tailwind" rows="4" placeholder="Announcement message..." required minlength="3" style="resize:vertical;"></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Scope</label>
+              <select id="ann-scope" class="input-tailwind" required>
+                <option value="GLOBAL">Global (All Students)</option>
+                <option value="BATCH">Batch</option>
+                <option value="INDIVIDUAL">Individual Student</option>
+              </select>
+            </div>
+            <div id="ann-batchGroup" class="hidden">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Batch</label>
+              <input id="ann-batch" type="text" class="input-tailwind" placeholder="e.g. CSE-2023">
+            </div>
+            <div id="ann-studentGroup" class="hidden">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Student</label>
+              <select id="ann-studentId" class="input-tailwind"><option value="">Select student...</option></select>
+            </div>
+            <button type="submit" class="btn-primary-tailwind w-full py-2.5">Post Announcement</button>
+            <p id="ann-msg" class="hidden text-center text-sm mt-1"></p>
+          </form>
+        </div>
+        <div class="panel-card">
+          <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">Recent Announcements</h2>
+          <div id="annList" class="text-sm text-slate-400">Loading...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ FILES ════ -->
+    <section id="tab-files" class="tab-panel hidden">
+      <div class="max-w-lg">
+        <h1 class="text-2xl font-bold text-white mb-6">Upload Files</h1>
+        <div class="panel-card">
+          <form id="fileForm" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">File Name</label>
+              <input id="file-name" type="text" class="input-tailwind" placeholder="e.g. Week 3 Notes" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">File URL / Link</label>
+              <input id="file-url" type="url" class="input-tailwind" placeholder="https://drive.google.com/..." required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Batch (optional)</label>
+              <input id="file-batch" type="text" class="input-tailwind" placeholder="e.g. CSE-2023">
+            </div>
+            <button type="submit" class="btn-primary-tailwind w-full py-2.5">Upload File</button>
+            <p id="file-msg" class="hidden text-center text-sm mt-1"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ COINS ════ -->
+    <section id="tab-coins" class="tab-panel hidden">
+      <div class="max-w-lg">
+        <h1 class="text-2xl font-bold text-white mb-6">Assign SSM Coins</h1>
+        <div class="panel-card">
+          <form id="coinsForm" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Student</label>
+              <select id="coin-studentId" class="input-tailwind" required><option value="">Select student...</option></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Coin Type</label>
+              <select id="coin-type" class="input-tailwind" required>
+                <option value="ALPHA">Alpha Coin (Achievement)</option>
+                <option value="SIGMA">Sigma Coin (Participation)</option>
+                <option value="PENALTY">Penalty Coin (Deduction)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Amount</label>
+              <input id="coin-amount" type="number" min="1" class="input-tailwind" placeholder="e.g. 10" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Reason</label>
+              <input id="coin-reason" type="text" class="input-tailwind" placeholder="Reason for assignment...">
+            </div>
+            <button type="submit" class="btn-primary-tailwind w-full py-2.5">Assign Coins</button>
+            <p id="coin-msg" class="hidden text-center text-sm mt-1"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ MARKS ════ -->
+    <section id="tab-marks" class="tab-panel hidden space-y-4">
+      <h1 class="text-2xl font-bold text-white">Enter / Update Student Marks</h1>
+      <div class="panel-card">
+        <div class="grid gap-4 sm:grid-cols-3 items-end">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Student</label>
+            <select id="marks-student" class="input-tailwind"><option value="">Select student...</option></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Semester</label>
+            <select id="marks-semester" class="input-tailwind">
+              <option value="">Select semester</option>
+              <option value="1">Sem 1</option><option value="2">Sem 2</option>
+              <option value="3">Sem 3</option><option value="4">Sem 4</option>
+              <option value="5">Sem 5</option><option value="6">Sem 6</option>
+              <option value="7">Sem 7</option><option value="8">Sem 8</option>
+            </select>
+          </div>
+          <div>
+            <button id="loadMarksBtn" class="btn-primary-tailwind w-full py-2.5 text-sm">Load Courses</button>
+          </div>
+        </div>
+      </div>
+      <div id="marksTableWrapper" class="hidden panel-card">
+        <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">CIE &amp; ETE Marks Entry</h2>
+        <div class="overflow-x-auto">
+          <table class="staff-table">
+            <thead><tr><th>Course Code</th><th>Course Name</th><th>CIE (/40)</th><th>ETE (/60)</th></tr></thead>
+            <tbody id="marksTableBody"></tbody>
+          </table>
+        </div>
+        <div class="mt-4 flex items-center gap-4">
+          <button id="saveMarksBtn" class="btn-primary-tailwind px-5 py-2 text-sm">Save Marks</button>
+          <p id="marks-msg" class="hidden text-sm"></p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ════ STUDENT MODAL ════ -->
+  <div id="studentModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl">
+      <button id="closeStudentModal" class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white border-none cursor-pointer text-xl leading-none transition-colors">&times;</button>
+      <h3 id="modalStudentName" class="text-lg font-bold text-white mb-4">Student Profile</h3>
+      <div class="flex gap-2 mb-5 border-b border-white/10 pb-3">
+        <button class="modal-tab-btn active" data-mtab="details">Details</button>
+        <button class="modal-tab-btn" data-mtab="attendance">Give Attendance</button>
+        <button class="modal-tab-btn" data-mtab="marks">Enter Marks</button>
+      </div>
+      <div id="mtab-details"><p class="text-slate-400">Loading...</p></div>
+      <div id="mtab-attendance" class="hidden space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Course</label>
+            <select id="modal-att-course" class="input-tailwind"><option value="">Select course...</option></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Date</label>
+            <input id="modal-att-date" type="date" class="input-tailwind">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Status</label>
+          <div class="modal-att-toggle">
+            <button id="modal-att-present" class="modal-att-btn present-active" onclick="setModalAttStatus('PRESENT')">Present</button>
+            <button id="modal-att-absent" class="modal-att-btn" onclick="setModalAttStatus('ABSENT')">Absent</button>
+          </div>
+        </div>
+        <button id="modal-att-save" class="btn-primary-tailwind px-5 py-2 text-sm">Save Attendance</button>
+        <p id="modal-att-msg" class="hidden text-sm mt-1"></p>
+      </div>
+      <div id="mtab-marks" class="hidden space-y-4">
+        <div class="grid grid-cols-2 gap-4 items-end">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Semester</label>
+            <select id="modal-marks-sem" class="input-tailwind">
+              <option value="">Select semester</option>
+              <option value="1">Sem 1</option><option value="2">Sem 2</option>
+              <option value="3">Sem 3</option><option value="4">Sem 4</option>
+              <option value="5">Sem 5</option><option value="6">Sem 6</option>
+              <option value="7">Sem 7</option><option value="8">Sem 8</option>
+            </select>
+          </div>
+          <div>
+            <button id="modal-marks-load" class="btn-primary-tailwind w-full py-2.5 text-sm">Load Courses</button>
+          </div>
+        </div>
+        <div id="modal-marks-wrapper" class="hidden">
+          <div class="overflow-x-auto">
+            <table class="staff-table">
+              <thead><tr><th>Code</th><th>Course Name</th><th>CIE (/40)</th><th>ETE (/60)</th></tr></thead>
+              <tbody id="modal-marks-tbody"></tbody>
+            </table>
+          </div>
+          <div class="mt-3 flex items-center gap-4">
+            <button id="modal-marks-save" class="btn-primary-tailwind px-5 py-2 text-sm">Save Marks</button>
+            <p id="modal-marks-msg" class="hidden text-sm mt-1"></p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- ── Footer ── -->
+  <footer class="relative z-10 mt-16 border-t border-white/10 bg-slate-950/30 backdrop-blur-xl py-8 text-center">
+    <div class="flex justify-center gap-6 mb-3 flex-wrap">
+      <a href="https://www.facebook.com/sruniversityindia" target="_blank" rel="noopener noreferrer" class="text-sm text-slate-400 hover:text-indigo-300 transition-colors">Facebook</a>
+      <a href="https://www.instagram.com/sr_university/" target="_blank" rel="noopener noreferrer" class="text-sm text-slate-400 hover:text-indigo-300 transition-colors">Instagram</a>
+      <a href="https://www.linkedin.com/school/sr-university/" target="_blank" rel="noopener noreferrer" class="text-sm text-slate-400 hover:text-indigo-300 transition-colors">LinkedIn</a>
+      <a href="https://sru.edu.in/" target="_blank" rel="noopener noreferrer" class="text-sm text-slate-400 hover:text-indigo-300 transition-colors">SRU Website</a>
+    </div>
+    <p class="text-xs text-slate-500">Center for Software Development and Digital Learning | SR University</p>
+  </footer>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/staff-dashboard.js"></script>
+</body>
+</html>
 
   <div class="info-cards-row">
     <div class="info-card card-cyan">
