@@ -58,7 +58,7 @@ let attStudents = [];
 let attMap = {};
 let currentModalStudent = null;
 let currentModalMarksCourses = [];
-let currentModalAttStatus = 'PRESENT';
+let currentModalAttStatus = 'Present';
 
 // ── Load dashboard overview ────────────────────────────────────────────────
 async function loadDashboard() {
@@ -156,6 +156,7 @@ async function loadStudentDropdowns() {
 // ALL STUDENTS TAB
 // ══════════════════════════════════════════════════════════════════════════
 let currentStudents = [];
+let studentActionHandlersBound = false;
 
 async function loadAllStudents(params = {}) {
   const tbody = document.getElementById('studentsTableBody');
@@ -200,8 +201,41 @@ function renderStudentsTable(students) {
         <span class="badge badge-sigma">s${s.sigmaCoins||0}</span>
         <span class="badge badge-penalty">P${s.penaltyCoins||0}</span>
       </td>
-      <td><button class="btn-view" onclick="openStudentModal('${s._id}')">View</button></td>
+      <td style="display:flex;gap:6px;">
+        <button type="button" class="btn-view js-view-btn" data-student-id="${s._id}">View</button>
+        <button type="button" class="btn-view js-att-btn" data-student-id="${s._id}">Attendance</button>
+        <button type="button" class="btn-view js-marks-btn" data-student-id="${s._id}">Marks</button>
+      </td>
     </tr>`).join('');
+
+  bindStudentActionHandlers();
+}
+
+function bindStudentActionHandlers() {
+  if (studentActionHandlersBound) return;
+  const tbody = document.getElementById('studentsTableBody');
+  if (!tbody) return;
+
+  tbody.addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-student-id]');
+    if (!button) return;
+    const studentId = button.dataset.studentId;
+    if (!studentId) return;
+
+    if (button.classList.contains('js-view-btn')) {
+      await openStudentModal(studentId);
+      return;
+    }
+    if (button.classList.contains('js-att-btn')) {
+      await openStudentModalForAttendance(studentId);
+      return;
+    }
+    if (button.classList.contains('js-marks-btn')) {
+      await openStudentModalForMarks(studentId);
+    }
+  });
+
+  studentActionHandlersBound = true;
 }
 
 function attendanceClass(pct) {
@@ -232,8 +266,8 @@ async function openStudentModal(studentId) {
   title.textContent = 'Loading…';
   switchModalTab('details');
   document.getElementById('mtab-details').innerHTML = '<p class="text-muted">Fetching student data…</p>';
-  currentModalStudent = null; currentModalMarksCourses = []; currentModalAttStatus = 'PRESENT';
-  setModalAttStatus('PRESENT');
+  currentModalStudent = null; currentModalMarksCourses = []; currentModalAttStatus = 'Present';
+  setModalAttStatus('Present');
   document.getElementById('modal-att-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('modal-att-course').innerHTML = '<option value="">Loading courses...</option>';
   document.getElementById('modal-marks-wrapper').classList.add('hidden');
@@ -302,6 +336,20 @@ async function openStudentModal(studentId) {
   }
 }
 
+async function openStudentModalForAttendance(studentId) {
+  await openStudentModal(studentId);
+  switchModalTab('attendance');
+}
+
+async function openStudentModalForMarks(studentId) {
+  await openStudentModal(studentId);
+  switchModalTab('marks');
+}
+
+window.openStudentModal = openStudentModal;
+window.openStudentModalForAttendance = openStudentModalForAttendance;
+window.openStudentModalForMarks = openStudentModalForMarks;
+
 function infoItem(label, value) {
   return `<div class="detail-item">
     <span class="di-label">${label}</span>
@@ -329,23 +377,47 @@ document.querySelectorAll('.modal-tab-btn').forEach(btn => {
 
 function setModalAttStatus(status) {
   currentModalAttStatus = status;
-  document.getElementById('modal-att-present').className = `modal-att-btn${status === 'PRESENT' ? ' present-active' : ''}`;
-  document.getElementById('modal-att-absent').className = `modal-att-btn${status === 'ABSENT' ? ' absent-active' : ''}`;
+  document.getElementById('modal-att-present').className = `modal-att-btn${status === 'Present' ? ' present-active' : ''}`;
+  document.getElementById('modal-att-absent').className = `modal-att-btn${status === 'Absent' ? ' absent-active' : ''}`;
 }
 
 // ── Modal: save single attendance ─────────────────────────────────────────
 document.getElementById('modal-att-save').addEventListener('click', async () => {
   if (!currentModalStudent) return;
-  const courseId = document.getElementById('modal-att-course').value;
-  const date     = document.getElementById('modal-att-date').value;
-  const msg      = document.getElementById('modal-att-msg');
-  if (!courseId) { showToast('Select a course', 'error'); return; }
-  if (!date)     { showToast('Select a date', 'error'); return; }
+  const courseSel = document.getElementById('modal-att-course');
+  const courseId = courseSel.value;
+  const date = document.getElementById('modal-att-date').value;
+  const msg = document.getElementById('modal-att-msg');
+  if (!date) { showToast('Select a date', 'error'); return; }
+
+  let subject = '';
+  if (courseId) {
+    const selectedOption = courseSel.options[courseSel.selectedIndex];
+    subject = (selectedOption && selectedOption.textContent) ? selectedOption.textContent : '';
+  }
+
+  const studentBatch = (currentModalStudent.batch || '').trim() || `${currentModalStudent.branch || ''}-${currentModalStudent.section || ''}`.replace(/^-|-$/g, '');
+
+  if (!currentModalStudent.rollNumber || !currentModalStudent.name || !studentBatch) {
+    showToast('Student profile is missing roll number or batch details', 'error');
+    return;
+  }
+
   msg.classList.add('hidden');
   try {
-    const res = await apiRequest('/staff/attendance', {
+    const res = await apiRequest('/attendance/mark', {
       method: 'POST',
-      body: JSON.stringify({ studentId: currentModalStudent._id, courseId, date, status: currentModalAttStatus })
+      body: JSON.stringify({
+        batch: studentBatch,
+        subject,
+        date,
+        records: [{
+          studentId: currentModalStudent._id,
+          hallTicketNumber: currentModalStudent.rollNumber,
+          studentName: currentModalStudent.name,
+          status: currentModalAttStatus
+        }]
+      })
     });
     const data = await res.json();
     msg.textContent = data.message || (res.ok ? 'Attendance saved!' : 'Error saving');

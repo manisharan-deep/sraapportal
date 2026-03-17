@@ -3,6 +3,9 @@ const authRoutes = require('./authRoutes');
 const studentRoutes = require('./studentRoutes');
 const staffRoutes = require('./staffRoutes');
 const adminRoutes = require('./adminRoutes');
+const attendanceRoutes = require('./attendance');
+const marksRoutes = require('./marks');
+const subjectsRoutes = require('./subjects');
 
 const router = express.Router();
 
@@ -14,5 +17,8 @@ router.use('/auth', authRoutes);
 router.use('/student', studentRoutes);
 router.use('/staff', staffRoutes);
 router.use('/admin', adminRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/marks', marksRoutes);
+router.use('/subjects', subjectsRoutes);
 
 module.exports = router;

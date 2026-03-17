@@ -29,11 +29,12 @@ const dashboard = asyncHandler(async (req, res) => {
 
 // ── List all students with optional filters ─────────────────────────────────
 const listStudents = asyncHandler(async (req, res) => {
-  const { branch, section, semester, search } = req.query;
+  const { branch, section, semester, batch, search } = req.query;
   const filter = {};
   if (branch) filter.branch = branch;
   if (section) filter.section = section;
   if (semester) filter.semester = Number(semester);
+  if (batch) filter.batch = batch;
   if (search) {
     filter.$or = [
       { name: { $regex: search, $options: 'i' } },
@@ -42,7 +43,7 @@ const listStudents = asyncHandler(async (req, res) => {
   }
   const students = await Student.find(filter)
     .populate('userId', 'email isActive')
-    .select('name rollNumber branch section semester cgpa backlogs attendancePercentage alphaCoins sigmaCoins penaltyCoins phone email gender mentor userId')
+    .select('name rollNumber branch section semester batch cgpa backlogs attendancePercentage alphaCoins sigmaCoins penaltyCoins phone email gender mentor userId')
     .sort({ rollNumber: 1 })
     .lean();
   return res.json({ students });
