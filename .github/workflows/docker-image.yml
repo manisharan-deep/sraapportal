@@ -8,11 +8,13 @@ on:
 
 jobs:
 
-  build:
+  build-images:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    - name: Build backend image
+      run: docker build -f backend/Dockerfile -t sraap-backend:$(date +%s) backend
+    - name: Build frontend image
+      run: docker build -f frontend/Dockerfile -t sraap-frontend:$(date +%s) frontend

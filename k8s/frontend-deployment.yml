@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sru-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sru-frontend
+  template:
+    metadata:
+      labels:
+        app: sru-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/your-org/sru-portal-frontend:latest
+          ports:
+            - containerPort: 80
