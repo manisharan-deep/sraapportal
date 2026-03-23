@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sru-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sru-backend
+  template:
+    metadata:
+      labels:
+        app: sru-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/your-org/sru-portal-backend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: MONGO_URI
+              value: mongodb://sru-mongodb:27017/sru_portal
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: CORS_ORIGIN
+              value: http://sru-frontend
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 15

@@ -6,8 +6,13 @@ on:
   pull_request:
     branches: ["**"]
 
+permissions:
+  contents: read
+  packages: write
+
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}/sru-portal-backend
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/sru-portal-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/sru-portal-frontend
 
 jobs:
   build-test-scan:
@@ -47,24 +52,43 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t $IMAGE_NAME:${{ github.sha }} .
+      - name: Build backend Docker image
+        run: docker build -t $BACKEND_IMAGE:${{ github.sha }} -f Dockerfile .
 
-      - name: Trivy container scan
+      - name: Trivy backend image scan
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Push image to registry
+      - name: Push backend image to registry
         run: |
-          docker push $IMAGE_NAME:${{ github.sha }}
-          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:latest
+          docker push $BACKEND_IMAGE:${{ github.sha }}
+          docker tag $BACKEND_IMAGE:${{ github.sha }} $BACKEND_IMAGE:latest
+          docker push $BACKEND_IMAGE:latest
+
+      - name: Build frontend Docker image
+        run: docker build -t $FRONTEND_IMAGE:${{ github.sha }} -f frontend/Dockerfile frontend
+
+      - name: Trivy frontend image scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push frontend image to registry
+        run: |
+          docker push $FRONTEND_IMAGE:${{ github.sha }}
+          docker tag $FRONTEND_IMAGE:${{ github.sha }} $FRONTEND_IMAGE:latest
+          docker push $FRONTEND_IMAGE:latest
 
   deploy-staging:
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
@@ -83,4 +107,4 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
 
       - name: Deploy to Kubernetes
-        run: kubectl apply -f infrastructure/kubernetes/
+        run: kubectl apply -f k8s/sraap.yml
