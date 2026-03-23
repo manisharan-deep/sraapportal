@@ -17,6 +17,124 @@ function statusBadgeClass(status) {
   return String(status || '').toLowerCase() === 'present' ? 'status-present' : 'status-absent';
 }
 
+function parsePercent(value) {
+  const text = String(value ?? '').replace('%', '').trim();
+  const num = Number(text);
+  return Number.isFinite(num) ? Math.max(0, Math.min(num, 100)) : 0;
+}
+
+function animateProgressBar(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  requestAnimationFrame(() => {
+    el.style.width = `${Math.max(0, Math.min(value, 100))}%`;
+  });
+}
+
+function animateAttendanceRing(value) {
+  const ring = document.getElementById('attendanceRing');
+  const valueEl = document.getElementById('attendanceRingValue');
+  if (!ring || !valueEl) return;
+
+  const circumference = 2 * Math.PI * 54;
+  ring.style.strokeDasharray = String(circumference);
+
+  const target = Math.max(0, Math.min(Number(value) || 0, 100));
+  let current = 0;
+  const timer = setInterval(() => {
+    current += 1;
+    const offset = circumference - (circumference * current) / 100;
+    ring.style.strokeDashoffset = String(offset);
+    valueEl.textContent = `${current}%`;
+    if (current >= target) {
+      clearInterval(timer);
+    }
+  }, 16);
+}
+
+function applyMetrics(student) {
+  const attendance = parsePercent(student?.attendancePercentage);
+  const cgpa = Number(student?.cgpa || 0);
+  const coursesCount = Number(student?.coursesCount || 0);
+  const backlogs = Number(student?.backlogs || 0);
+  const completion = coursesCount > 0
+    ? ((coursesCount - Math.max(backlogs, 0)) / coursesCount) * 100
+    : 0;
+
+  setText('metricAttendanceValue', `${attendance.toFixed(2)}%`);
+  setText('metricCgpaValue', cgpa ? cgpa.toFixed(2) : '0.00');
+  setText('metricCoursesValue', `${Math.max(0, Math.min(completion, 100)).toFixed(0)}%`);
+
+  animateProgressBar('metricAttendanceBar', attendance);
+  animateProgressBar('metricCgpaBar', (cgpa / 10) * 100);
+  animateProgressBar('metricCoursesBar', completion);
+  animateAttendanceRing(attendance);
+}
+
+function initRevealAnimations() {
+  document.querySelectorAll('.reveal').forEach((el, index) => {
+    setTimeout(() => {
+      el.classList.add('in');
+    }, 100 + index * 80);
+  });
+}
+
+function initPointerEffects() {
+  const spotlight = document.getElementById('cursorSpotlight');
+  const parallaxNodes = document.querySelectorAll('[data-depth]');
+  if (!spotlight || !parallaxNodes.length) return;
+
+  let frame = null;
+  let pointerX = window.innerWidth * 0.5;
+  let pointerY = window.innerHeight * 0.5;
+
+  const apply = () => {
+    const xNorm = (pointerX / window.innerWidth - 0.5) * 2;
+    const yNorm = (pointerY / window.innerHeight - 0.5) * 2;
+
+    spotlight.style.left = `${pointerX}px`;
+    spotlight.style.top = `${pointerY}px`;
+
+    parallaxNodes.forEach((node) => {
+      const depth = Number(node.getAttribute('data-depth') || 16);
+      node.style.transform = `translate3d(${xNorm * depth * 0.35}px, ${yNorm * depth * 0.35}px, 0)`;
+    });
+
+    frame = null;
+  };
+
+  document.addEventListener('mousemove', (event) => {
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+    if (!frame) frame = requestAnimationFrame(apply);
+  }, { passive: true });
+}
+
+function initRipples() {
+  document.querySelectorAll('.ripple-btn').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      const rect = button.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.left = `${event.clientX - rect.left}px`;
+      ripple.style.top = `${event.clientY - rect.top}px`;
+      button.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 620);
+    });
+  });
+}
+
+function initPageReadyState() {
+  const loader = document.getElementById('pageLoader');
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (loader) loader.classList.add('hidden');
+      document.body.classList.add('page-ready');
+      initRevealAnimations();
+    }, 420);
+  });
+}
+
 function renderAnnouncements(announcements = []) {
   const listEl = document.getElementById('announcementsList');
   if (!listEl) return;
@@ -95,6 +213,7 @@ async function loadDashboard() {
       setText('coursesCount', student.coursesCount || '0');
       setText('backlogsCount', student.backlogs || '0');
       renderAnnouncements(data.announcements || []);
+      applyMetrics(student);
       
       // Last Week Attendance - only show if data exists from API
       if (data.lastWeekAttendance && data.lastWeekAttendance.length > 0) {
@@ -166,6 +285,7 @@ function showEmptyState() {
   setText('coursesCount', '0');
   setText('backlogsCount', '0');
   renderAnnouncements([]);
+  applyMetrics({ attendancePercentage: 0, cgpa: 0, coursesCount: 0, backlogs: 0 });
   
   // Show no data messages in tables
   document.getElementById('lastWeekAttendance').innerHTML = `
@@ -226,3 +346,6 @@ function initAttendanceCalculator() {
 
 loadDashboard();
 initAttendanceCalculator();
+initPointerEffects();
+initRipples();
+initPageReadyState();

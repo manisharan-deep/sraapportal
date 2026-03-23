@@ -4,19 +4,149 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard - SR University</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/style.css">
   <style>
+    :root {
+      --bg-a: #04133b;
+      --bg-b: #0c3b8d;
+      --bg-c: #0e5fc5;
+      --glass: rgba(255, 255, 255, 0.13);
+      --glass-line: rgba(255, 255, 255, 0.26);
+      --ink: #f4fbff;
+      --ink-soft: rgba(238, 247, 255, 0.84);
+      --accent: #72d8ff;
+      --accent-2: #37c6ff;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(130deg, var(--bg-a), var(--bg-b), var(--bg-c));
+      background-size: 220% 220%;
+      animation: pageGradient 16s ease infinite;
+      color: var(--ink);
+      min-height: 100vh;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    body.page-ready {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes pageGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 35% 20%, #0f5ec4, #031338 72%);
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-spinner {
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      border: 5px solid rgba(255,255,255,0.24);
+      border-top-color: #ffffff;
+      animation: spin 0.9s linear infinite;
+      box-shadow: 0 0 20px rgba(114, 216, 255, 0.45);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .bg-stage {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .float-orb {
+      position: absolute;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), rgba(255,255,255,0.08) 70%, transparent 72%);
+      animation: floatY 9s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .float-orb.o1 { width: 230px; height: 230px; left: -50px; top: 140px; animation-delay: 0s; }
+    .float-orb.o2 { width: 140px; height: 140px; right: 6%; top: 24%; animation-delay: 1.4s; }
+    .float-orb.o3 { width: 100px; height: 100px; left: 16%; bottom: 8%; animation-delay: 2.1s; }
+    .float-orb.o4 { width: 170px; height: 170px; right: -35px; bottom: 20%; animation-delay: 3.1s; }
+
+    .float-icon {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.14);
+      backdrop-filter: blur(6px);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      animation: floatY 8.2s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .float-icon.i1 { left: 9%; top: 64%; animation-delay: 0.4s; }
+    .float-icon.i2 { right: 12%; top: 58%; animation-delay: 2.2s; }
+    .float-icon.i3 { right: 20%; top: 30%; animation-delay: 3.2s; }
+
+    @keyframes floatY {
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(0, -14px, 0); }
+    }
+
+    .spotlight {
+      position: fixed;
+      z-index: 1;
+      width: 290px;
+      height: 290px;
+      border-radius: 999px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(114, 216, 255, 0.24), rgba(114, 216, 255, 0.1) 45%, rgba(114, 216, 255, 0) 70%);
+      mix-blend-mode: screen;
+    }
     
     /* Header */
     .dashboard-header {
-      background: linear-gradient(135deg, #2d4f96 0%, #1e3a6d 100%);
-      color: white;
+      background: rgba(6, 26, 74, 0.62);
+      color: var(--ink);
       padding: 15px 30px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.22);
+      position: sticky;
+      top: 0;
+      z-index: 90;
     }
     .header-left { display: flex; align-items: center; gap: 20px; }
     .sru-logo { font-size: 32px; font-weight: bold; }
@@ -24,11 +154,14 @@
     
     /* Navigation */
     .nav-bar {
-      background: #2d4f96;
+      background: rgba(5, 25, 72, 0.52);
       padding: 0 30px;
       display: flex;
       gap: 5px;
       position: relative;
+      backdrop-filter: blur(10px);
+      z-index: 89;
+      border-bottom: 1px solid rgba(255,255,255,0.16);
     }
     .nav-item {
       color: white;
@@ -39,7 +172,11 @@
       position: relative;
       white-space: nowrap;
     }
-    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item { transition: transform 0.2s ease, background 0.2s ease; }
+    .nav-item:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-1px);
+    }
     .nav-item.has-dropdown::after { content: ' +'; }
     
     /* Dropdown */
@@ -76,7 +213,7 @@
     
     /* Welcome Banner */
     .welcome-banner {
-      background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+      background: linear-gradient(90deg, rgba(255, 214, 82, 0.93) 0%, rgba(255, 239, 118, 0.94) 100%);
       padding: 8px 30px;
       display: flex;
       justify-content: space-between;
@@ -107,14 +244,36 @@
       margin: 20px 0;
       flex-wrap: wrap;
       justify-content: center;
+      position: relative;
+      z-index: 5;
     }
     .info-card {
-      border-radius: 8px;
+      border-radius: 16px;
       padding: 25px;
       color: white;
       min-width: 180px;
       flex: 1;
       max-width: 220px;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      box-shadow: 0 14px 26px rgba(2, 12, 32, 0.28);
+    }
+    .info-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(140deg, rgba(173, 231, 255, 0.85), rgba(130, 198, 255, 0.24), rgba(173, 231, 255, 0.7));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .info-card:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 18px 30px rgba(1, 10, 31, 0.45);
     }
     .info-card h3 { font-size: 32px; margin: 10px 0 5px; }
     .info-card p { font-size: 13px; margin: 3px 0; }
@@ -137,14 +296,17 @@
 
     .dashboard-calc {
       margin: 10px 30px 20px;
-      background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: var(--glass);
+      border-radius: 16px;
+      box-shadow: 0 14px 30px rgba(2, 12, 32, 0.28);
       padding: 16px;
-      border: 1px solid #e7e7e7;
+      border: 1px solid var(--glass-line);
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 5;
     }
     .dashboard-calc h3 {
-      color: #1e3a6d;
+      color: var(--ink);
       font-size: 20px;
       margin-bottom: 12px;
     }
@@ -157,7 +319,7 @@
     .calc-grid label {
       display: block;
       font-size: 12px;
-      color: #374151;
+      color: var(--ink-soft);
       margin-bottom: 4px;
       font-weight: 600;
     }
@@ -165,29 +327,37 @@
     .calc-grid select {
       width: 100%;
       padding: 9px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 10px;
       font-size: 14px;
+      background: rgba(255,255,255,0.14);
+      color: #ffffff;
     }
     .calc-grid button {
       height: 38px;
       border: none;
-      border-radius: 6px;
-      background: #111827;
-      color: #fff;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #8ce4ff, #47cbff);
+      color: #012345;
       padding: 0 14px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 12px 22px rgba(71, 203, 255, 0.36);
+    }
+    .calc-grid button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 14px 26px rgba(71, 203, 255, 0.48);
     }
     .calc-result {
       margin-top: 12px;
       font-size: 14px;
-      color: #1f2937;
+      color: #f4fbff;
       line-height: 1.5;
       padding: 10px;
-      background: #f8fbff;
-      border: 1px solid #dbe3f4;
-      border-radius: 6px;
+      background: rgba(255,255,255,0.13);
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 10px;
       display: none;
     }
     @media (max-width: 900px) {
@@ -209,14 +379,16 @@
 
     .table-container {
       flex: 1;
-      background: white;
-      border-radius: 8px;
+      background: var(--glass);
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 14px 30px rgba(2,12,32,0.28);
+      border: 1px solid var(--glass-line);
+      backdrop-filter: blur(10px);
     }
     .table-header {
-      background: #424242;
-      color: white;
+      background: rgba(4, 22, 66, 0.62);
+      color: #ffffff;
       padding: 15px;
       font-size: 16px;
       font-weight: 600;
@@ -229,11 +401,12 @@
     th, td {
       padding: 12px;
       text-align: left;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
       font-size: 14px;
     }
-    th { background: #f5f5f5; font-weight: 600; color: #333; }
-    td a { color: #2196f3; text-decoration: none; }
+    th { background: rgba(255,255,255,0.1); font-weight: 600; color: #eaf7ff; }
+    td { color: #eff8ff; }
+    td a { color: #95dcff; text-decoration: none; }
     td a:hover { text-decoration: underline; }
     .attendance-red { background: #f44336; color: white; font-weight: 600; padding: 4px 8px; border-radius: 3px; }
     .attendance-status-badge {
@@ -258,14 +431,17 @@
 
     .announcements-wrap {
       margin: 0 30px 20px;
-      background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border: 1px solid #e7e7e7;
+      background: var(--glass);
+      border-radius: 16px;
+      box-shadow: 0 14px 30px rgba(2, 12, 32, 0.28);
+      border: 1px solid var(--glass-line);
       overflow: hidden;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 5;
     }
     .announcements-header {
-      background: #1f2937;
+      background: rgba(4, 22, 66, 0.62);
       color: #ffffff;
       padding: 14px 16px;
       font-size: 16px;
@@ -280,7 +456,7 @@
     }
     .announcement-item {
       padding: 14px 16px;
-      border-bottom: 1px solid #edf1f7;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
     }
     .announcement-title-row {
       display: flex;
@@ -291,32 +467,141 @@
     }
     .announcement-title-row h4 {
       font-size: 15px;
-      color: #111827;
+      color: #f3fbff;
     }
     .announcement-date {
       font-size: 12px;
-      color: #6b7280;
+      color: #cde8ff;
       white-space: nowrap;
     }
     .announcement-item p {
-      color: #374151;
+      color: #e8f6ff;
       font-size: 14px;
       line-height: 1.5;
     }
     .announcement-empty {
       text-align: center;
-      color: #6b7280;
+      color: #d6ecff;
       padding: 18px;
       font-size: 14px;
+    }
+
+    .portal-insights {
+      margin: 0 30px 20px;
+      display: grid;
+      grid-template-columns: 1.1fr 2fr;
+      gap: 16px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .insight-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-line);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 14px 30px rgba(2, 12, 32, 0.28);
+      padding: 16px;
+    }
+
+    .attendance-ring-wrap {
+      width: 130px;
+      height: 130px;
+      margin: 8px auto 0;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .attendance-ring-wrap svg {
+      width: 130px;
+      height: 130px;
+      transform: rotate(-90deg);
+    }
+
+    .ring-track { fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 11; }
+    .ring-progress {
+      fill: none;
+      stroke: url(#attendanceGradient);
+      stroke-width: 11;
+      stroke-linecap: round;
+      stroke-dasharray: 339.292;
+      stroke-dashoffset: 339.292;
+      transition: stroke-dashoffset 1.4s ease;
+    }
+
+    .ring-text {
+      position: absolute;
+      text-align: center;
+    }
+
+    .ring-text strong { font-size: 24px; display: block; }
+    .ring-text span { font-size: 12px; color: var(--ink-soft); }
+
+    .insight-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .metric-widget {
+      position: relative;
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(4, 20, 60, 0.45);
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+      overflow: hidden;
+    }
+
+    .metric-widget::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(145deg, rgba(173, 231, 255, 0.9), rgba(130, 198, 255, 0.2), rgba(173, 231, 255, 0.65));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .metric-widget:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 14px 26px rgba(1, 10, 31, 0.42);
+    }
+
+    .metric-widget h4 { font-size: 14px; margin-bottom: 8px; color: #e6f5ff; }
+    .metric-widget .value { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+
+    .metric-progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.18);
+    }
+
+    .metric-progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 1.2s ease;
     }
     
     /* Footer */
     .footer {
-      background: #2d4f96;
+      background: rgba(6, 26, 74, 0.62);
       color: white;
       padding: 20px 30px;
       text-align: center;
       margin-top: 50px;
+      border-top: 1px solid rgba(255,255,255,0.22);
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 5;
     }
     .footer-links {
       display: flex;
@@ -334,11 +619,65 @@
     .footer-copyright { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 10px; }
     
     .d-none { display: none !important; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .ripple-btn {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ripple {
+      position: absolute;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      background: rgba(255,255,255,0.55);
+      animation: rippleEffect 0.58s linear;
+    }
+
+    @keyframes rippleEffect {
+      from { width: 0; height: 0; opacity: 0.8; }
+      to { width: 220px; height: 220px; opacity: 0; }
+    }
+
+    @media (max-width: 1080px) {
+      .portal-insights {
+        grid-template-columns: 1fr;
+      }
+      .insight-metrics {
+        grid-template-columns: 1fr;
+      }
+      .tables-section {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-stage" id="bgStage" aria-hidden="true">
+    <div class="float-orb o1" data-depth="18"></div>
+    <div class="float-orb o2" data-depth="24"></div>
+    <div class="float-orb o3" data-depth="16"></div>
+    <div class="float-orb o4" data-depth="20"></div>
+    <div class="float-icon i1" data-depth="28">📚</div>
+    <div class="float-icon i2" data-depth="30">🎓</div>
+    <div class="float-icon i3" data-depth="26">📘</div>
+  </div>
+  <div class="spotlight" id="cursorSpotlight"></div>
+
   <!-- Header -->
-  <div class="dashboard-header">
+  <div class="dashboard-header reveal">
     <div class="header-left">
       <div class="sru-logo">[ sru</div>
       <div class="header-title">SR UNIVERSITY</div>
@@ -347,7 +686,7 @@
   </div>
 
   <!-- Navigation -->
-  <nav class="nav-bar">
+  <nav class="nav-bar reveal">
     <a href="dashboard.html" class="nav-item">Home</a>
     <div class="nav-item has-dropdown">
       Academics
@@ -427,7 +766,7 @@
   </nav>
 
   <!-- Welcome Banner -->
-  <div class="welcome-banner">
+  <div class="welcome-banner reveal">
     <div class="no-due">No Due</div>
     <div class="welcome-text welcome-text-scroll">
       <span class="scroll-track">Welcome to <span id="studentName">STUDENT NAME</span> - <span id="rollNumber">ROLL NUMBER</span> - <span id="program">PROGRAM</span> - <span id="branch">BRANCH</span></span>
@@ -440,47 +779,86 @@
   </div>
 
   <!-- Secondary Banner -->
-  <div class="secondary-banner">
+  <div class="secondary-banner reveal">
     <a href="#">Click to View Timetable</a> | <a href="#">Click to View NPTEL Live Sessions</a>
   </div>
 
   <!-- Info Cards -->
-  <div class="info-cards">
+  <div class="info-cards reveal">
     <div class="info-card card-cyan">
       <p>Year-Sem</p>
       <h3 id="yearSem">-</h3>
-      <button onclick="window.location.href='edit-profile.html'">More Info ➜</button>
+      <button class="ripple-btn" onclick="window.location.href='edit-profile.html'">More Info ➜</button>
     </div>
     <div class="info-card card-green">
       <p>Attendance %</p>
       <h3 id="attendancePercent">-</h3>
-      <button onclick="window.location.href='edit-academics.html'">More Info ➜</button>
+      <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
     <div class="info-card card-yellow">
       <h3 id="mentorName">MENTOR</h3>
       <p>Contact No: <span id="mentorContact">-</span></p>
       <p>Mentoring Staff</p>
-      <button onclick="window.location.href='edit-academics.html'">More Info ➜</button>
+      <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
     <div class="info-card card-red">
       <h3>Alpha - Brave - <span id="alphaCoins">0</span> Coins</h3>
       <p>Sigma - Brave - <span id="sigmaCoins">0</span> Coins</p>
       <p>Student Success Management</p>
-      <button onclick="window.location.href='edit-academics.html'">More Info ➜</button>
+      <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
     <div class="info-card card-teal">
       <p>Overall CGPA %</p>
       <h3 id="cgpa">-</h3>
-      <button onclick="window.location.href='edit-academics.html'">More Info ➜</button>
+      <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
     <div class="info-card card-blue">
       <h3><span id="coursesCount">32</span> | <span id="backlogsCount">1</span></h3>
       <p>No of Courses | Total Backlogs</p>
-      <button onclick="window.location.href='edit-academics.html'">More Info ➜</button>
+      <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
   </div>
 
-  <div class="dashboard-calc">
+  <div class="portal-insights reveal">
+    <div class="insight-card">
+      <h3 style="font-size:18px;margin-bottom:10px;">Attendance Visual</h3>
+      <div class="attendance-ring-wrap">
+        <svg viewBox="0 0 126 126" aria-hidden="true">
+          <defs>
+            <linearGradient id="attendanceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8ee4ff"></stop>
+              <stop offset="100%" stop-color="#32c5ff"></stop>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="63" cy="63" r="54"></circle>
+          <circle class="ring-progress" id="attendanceRing" cx="63" cy="63" r="54"></circle>
+        </svg>
+        <div class="ring-text"><strong id="attendanceRingValue">0%</strong><span>Current</span></div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <h3 style="font-size:18px;margin-bottom:10px;">Academic Overview</h3>
+      <div class="insight-metrics">
+        <div class="metric-widget">
+          <h4>Attendance</h4>
+          <div class="value" id="metricAttendanceValue">0%</div>
+          <div class="metric-progress"><div class="metric-progress-bar" id="metricAttendanceBar"></div></div>
+        </div>
+        <div class="metric-widget">
+          <h4>CGPA</h4>
+          <div class="value" id="metricCgpaValue">0.00</div>
+          <div class="metric-progress"><div class="metric-progress-bar" id="metricCgpaBar"></div></div>
+        </div>
+        <div class="metric-widget">
+          <h4>Course Completion</h4>
+          <div class="value" id="metricCoursesValue">0%</div>
+          <div class="metric-progress"><div class="metric-progress-bar" id="metricCoursesBar"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-calc reveal">
     <h3>75% Attendance Calculator</h3>
     <div class="calc-grid">
       <div>
@@ -500,12 +878,12 @@
         <label for="totalClasses">Total Classes</label>
         <input id="totalClasses" type="number" min="0" placeholder="Total classes">
       </div>
-      <button id="calcAttendBtn" type="button">Calculate</button>
+      <button id="calcAttendBtn" type="button" class="ripple-btn">Calculate</button>
     </div>
     <div id="calcResult" class="calc-result"></div>
   </div>
 
-  <div class="announcements-wrap">
+  <div class="announcements-wrap reveal">
     <div class="announcements-header">Announcements</div>
     <ul class="announcements-list" id="announcementsList">
       <li class="announcement-empty">Loading announcements...</li>
@@ -513,7 +891,7 @@
   </div>
 
   <!-- Tables Section -->
-  <div class="tables-section">
+  <div class="tables-section reveal">
     <!-- Last Week Attendance -->
     <div class="table-container">
       <div class="table-header">Last Week Attendance %</div>
@@ -556,7 +934,7 @@
   </div>
 
   <!-- Footer -->
-  <div class="footer">
+  <div class="footer reveal">
     <div class="footer-links">
       <a href="https://www.facebook.com/sruniversityindia" target="_blank" rel="noopener noreferrer"><svg width="20" height="20" fill="currentColor"><text x="0" y="15" font-size="15">f</text></svg> Facebook</a>
       <a href="https://www.instagram.com/sr_university/?hl=en" target="_blank" rel="noopener noreferrer">📷 Instagram</a>
