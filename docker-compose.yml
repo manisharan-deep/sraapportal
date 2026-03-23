@@ -1,39 +1,68 @@
 version: '3.9'
 
 services:
+  # ---- MongoDB Database ----
+  db:
+    image: mongo:7
+    container_name: sru-db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: sru_portal
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    tmpfs:
+      - /tmp
+      - /run
+
+  # ---- Backend API ----
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: sru-portal-backend
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./backend/.env.example
+    container_name: sru-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      MONGO_URI: mongodb://db:27017/sru_portal
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      CORS_ORIGIN: http://localhost
+      JWT_ACCESS_SECRET: change_me_access
+      JWT_REFRESH_SECRET: change_me_refresh
+      SESSION_SECRET: change_me_session
+    expose:
+      - "3000"
     depends_on:
-      - mongodb
-      - redis
-    restart: unless-stopped
+      db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
 
-  mongodb:
-    image: mongo:7
-    container_name: sru-portal-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+  # ---- Frontend (Nginx static) ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sru-frontend
     restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: sru-portal-redis
     ports:
-      - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
+      - "80:8080"
+    depends_on:
+      - backend
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
-  mongo_data:
-  redis_data:
+  mongodata:
+    driver: local
