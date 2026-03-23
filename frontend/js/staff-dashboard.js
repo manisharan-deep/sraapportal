@@ -245,14 +245,18 @@ function attendanceClass(pct) {
   return 'att-bad';
 }
 
+function getStudentFilterParams() {
+  return {
+    search: document.getElementById('studSearch').value.trim(),
+    branch: document.getElementById('studBranch').value,
+    section: document.getElementById('studSection').value,
+    semester: document.getElementById('studSem').value
+  };
+}
+
 // Student filter button
 document.getElementById('studFilterBtn').addEventListener('click', () => {
-  loadAllStudents({
-    search:  document.getElementById('studSearch').value.trim(),
-    branch:  document.getElementById('studBranch').value,
-    section: document.getElementById('studSection').value,
-    semester:document.getElementById('studSem').value
-  });
+  loadAllStudents(getStudentFilterParams());
 });
 document.getElementById('studSearch').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('studFilterBtn').click();
@@ -423,7 +427,10 @@ document.getElementById('modal-att-save').addEventListener('click', async () => 
     msg.textContent = data.message || (res.ok ? 'Attendance saved!' : 'Error saving');
     msg.style.color = res.ok ? '#15803d' : '#dc2626';
     msg.classList.remove('hidden');
-    if (res.ok) showToast('Attendance saved!');
+    if (res.ok) {
+      showToast('Attendance saved!');
+      loadAllStudents(getStudentFilterParams());
+    }
   } catch { msg.textContent = 'Network error'; msg.style.color = '#dc2626'; msg.classList.remove('hidden'); }
 });
 

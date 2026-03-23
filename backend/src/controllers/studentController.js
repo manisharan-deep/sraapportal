@@ -15,23 +15,85 @@ const { generateAttendancePdf } = require('../services/pdfService');
 const { sendEmail } = require('../services/emailService');
 const { sendWhatsAppMessage } = require('../services/whatsappService');
 
+const isPresentStatus = (value) => String(value || '').toLowerCase() === 'present';
+const toIsoDate = (value) => new Date(value).toISOString().slice(0, 10);
+
 const dashboard = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id }).lean();
   if (!student) {
     return res.status(404).json({ message: 'Student profile not found' });
   }
 
-  const announcements = await Announcement.find({
-    $or: [
-      { scope: 'GLOBAL' },
-      { scope: 'BATCH', batch: `${student.branch}-${student.section}` },
-      { scope: 'INDIVIDUAL', studentId: student._id }
-    ]
-  }).sort({ createdAt: -1 }).limit(5).lean();
+  const [announcements, attendanceRecords] = await Promise.all([
+    Announcement.find({
+      $or: [
+        { scope: 'GLOBAL' },
+        { scope: 'BATCH', batch: `${student.branch}-${student.section}` },
+        { scope: 'INDIVIDUAL', studentId: student._id }
+      ]
+    }).sort({ createdAt: -1 }).limit(10).lean(),
+    Attendance.find({ studentId: student._id })
+      .select('date status subject')
+      .sort({ date: -1, createdAt: -1 })
+      .lean()
+  ]);
+
+  const lastWeekAttendance = attendanceRecords.slice(0, 7).map((record) => {
+    const status = isPresentStatus(record.status) ? 'Present' : 'Absent';
+    return {
+      date: toIsoDate(record.date),
+      held: 1,
+      attend: status,
+      status
+    };
+  });
+
+  const courseAccumulator = new Map();
+  attendanceRecords.forEach((record) => {
+    const courseName = (record.subject || 'General').trim() || 'General';
+    if (!courseAccumulator.has(courseName)) {
+      courseAccumulator.set(courseName, {
+        courseName,
+        held: 0,
+        present: 0,
+        absent: 0,
+        latestDate: null,
+        latestStatus: null
+      });
+    }
+
+    const row = courseAccumulator.get(courseName);
+    const present = isPresentStatus(record.status);
+    row.held += 1;
+    row.present += present ? 1 : 0;
+    row.absent += present ? 0 : 1;
+    if (!row.latestDate || new Date(record.date) > new Date(row.latestDate)) {
+      row.latestDate = record.date;
+      row.latestStatus = present ? 'Present' : 'Absent';
+    }
+  });
+
+  const courseAttendance = [...courseAccumulator.values()]
+    .map((row) => {
+      const percentage = row.held > 0 ? (row.present / row.held) * 100 : 0;
+      return {
+        courseName: row.courseName,
+        ltp: '-',
+        held: row.held,
+        present: row.present,
+        absent: row.absent,
+        percentage: Number(percentage.toFixed(2)),
+        latestStatus: row.latestStatus || '-',
+        loss: Number((100 - percentage).toFixed(2))
+      };
+    })
+    .sort((a, b) => a.courseName.localeCompare(b.courseName));
 
   return res.json({
     student,
-    announcements
+    announcements,
+    lastWeekAttendance,
+    courseAttendance
   });
 });
 

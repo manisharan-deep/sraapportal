@@ -7,6 +7,41 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
+function formatPercent(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return `${num.toFixed(2)}%`;
+}
+
+function statusBadgeClass(status) {
+  return String(status || '').toLowerCase() === 'present' ? 'status-present' : 'status-absent';
+}
+
+function renderAnnouncements(announcements = []) {
+  const listEl = document.getElementById('announcementsList');
+  if (!listEl) return;
+
+  if (!announcements.length) {
+    listEl.innerHTML = `
+      <li class="announcement-empty">No announcements available right now.</li>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = announcements.map((announcement) => {
+    const dateText = announcement.createdAt ? new Date(announcement.createdAt).toLocaleDateString() : '';
+    return `
+      <li class="announcement-item">
+        <div class="announcement-title-row">
+          <h4>${announcement.title || 'Announcement'}</h4>
+          ${dateText ? `<span class="announcement-date">${dateText}</span>` : ''}
+        </div>
+        <p>${announcement.message || '-'}</p>
+      </li>
+    `;
+  }).join('');
+}
+
 function setProfileIcon(student) {
   const icon = document.getElementById('profileIcon');
   if (!icon) return;
@@ -51,7 +86,7 @@ async function loadDashboard() {
       
       // Info cards - only show actual data
       setText('yearSem', student.yearSem || '-');
-      setText('attendancePercent', student.attendancePercentage || '-');
+      setText('attendancePercent', formatPercent(student.attendancePercentage));
       setText('mentorName', student.mentorName || '-');
       setText('mentorContact', student.mentorContact || '-');
       setText('alphaCoins', student.alphaCoins || '0');
@@ -59,6 +94,7 @@ async function loadDashboard() {
       setText('cgpa', student.cgpa || '-');
       setText('coursesCount', student.coursesCount || '0');
       setText('backlogsCount', student.backlogs || '0');
+      renderAnnouncements(data.announcements || []);
       
       // Last Week Attendance - only show if data exists from API
       if (data.lastWeekAttendance && data.lastWeekAttendance.length > 0) {
@@ -67,7 +103,7 @@ async function loadDashboard() {
             <td>${index + 1}</td>
             <td><a href="#">${row.date}</a></td>
             <td>${row.held}</td>
-            <td>${row.attend}</td>
+            <td><span class="attendance-status-badge ${statusBadgeClass(row.attend || row.status)}">${row.attend || row.status || '-'}</span></td>
           </tr>
         `).join('');
       } else {
@@ -88,7 +124,10 @@ async function loadDashboard() {
             <td>${row.held || '-'}</td>
             <td>${row.present || row.pr || '-'}</td>
             <td>${row.absent || row.ab || '-'}</td>
-            <td><span class="attendance-red">${row.percentage || row.present || '-'}</span></td>
+            <td>
+              <span class="attendance-red">${formatPercent(row.percentage)}</span>
+              <span class="attendance-status-badge ${statusBadgeClass(row.latestStatus)}">${row.latestStatus || '-'}</span>
+            </td>
             <td>${row.loss || '-'}</td>
           </tr>
         `).join('');
@@ -126,6 +165,7 @@ function showEmptyState() {
   setText('cgpa', '-');
   setText('coursesCount', '0');
   setText('backlogsCount', '0');
+  renderAnnouncements([]);
   
   // Show no data messages in tables
   document.getElementById('lastWeekAttendance').innerHTML = `

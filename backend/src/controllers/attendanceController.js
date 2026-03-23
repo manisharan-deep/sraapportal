@@ -1,6 +1,7 @@
 const Attendance = require('../models/Attendance');
 const Staff = require('../models/Staff');
 const Student = require('../models/Student');
+const mongoose = require('mongoose');
 
 const normalizeDate = (dateInput) => {
   const dt = new Date(dateInput);
@@ -19,6 +20,52 @@ const getStaffId = async (userId) => {
 };
 
 const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+const toObjectId = (value) => {
+  try {
+    return new mongoose.Types.ObjectId(String(value));
+  } catch (_error) {
+    return null;
+  }
+};
+
+const recalculateStudentAttendancePercentages = async (studentIds = []) => {
+  const objectIds = [...new Set(studentIds.map(toObjectId).filter(Boolean).map(String))]
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  if (!objectIds.length) return;
+
+  const stats = await Attendance.aggregate([
+    { $match: { studentId: { $in: objectIds } } },
+    {
+      $group: {
+        _id: '$studentId',
+        totalClasses: { $sum: 1 },
+        presentCount: {
+          $sum: {
+            $cond: [{ $eq: [{ $toLower: '$status' }, 'present'] }, 1, 0]
+          }
+        }
+      }
+    }
+  ]);
+
+  const percentByStudent = new Map(
+    stats.map((row) => {
+      const percentage = row.totalClasses > 0 ? (row.presentCount / row.totalClasses) * 100 : 0;
+      return [String(row._id), Number(percentage.toFixed(2))];
+    })
+  );
+
+  await Student.bulkWrite(
+    objectIds.map((studentId) => ({
+      updateOne: {
+        filter: { _id: studentId },
+        update: { $set: { attendancePercentage: percentByStudent.get(String(studentId)) ?? 0 } }
+      }
+    }))
+  );
+};
 
 const listStudents = async (req, res) => {
   const {
@@ -145,6 +192,7 @@ const markBulkAttendance = async (req, res) => {
   }
 
   await Attendance.bulkWrite(ops);
+  await recalculateStudentAttendancePercentages(ops.map((op) => op.updateOne.filter.studentId));
   return res.status(200).json({
     message: `Attendance saved for ${ops.length} student(s)`,
     updatedCount: ops.length
@@ -225,6 +273,7 @@ const updateAttendance = async (req, res) => {
   ).lean();
 
   if (!updated) return res.status(404).json({ message: 'Attendance record not found' });
+  await recalculateStudentAttendancePercentages([updated.studentId]);
   return res.json({ message: 'Attendance updated successfully', attendance: updated });
 };
 
@@ -249,7 +298,7 @@ const getAttendancePercentage = async (req, res) => {
         totalClasses: { $sum: 1 },
         presentCount: {
           $sum: {
-            $cond: [{ $eq: ['$status', 'Present'] }, 1, 0]
+            $cond: [{ $eq: [{ $toLower: '$status' }, 'present'] }, 1, 0]
           }
         }
       }
