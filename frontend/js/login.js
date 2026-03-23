@@ -1,239 +1,365 @@
-// Central function to switch login role
-function applyRole(role) {
-  if (!['STUDENT', 'STAFF', 'ADMIN'].includes(role)) return;
-  const niceRole = role.charAt(0) + role.slice(1).toLowerCase();
-  const roleInput = document.getElementById('role');
-  const loginTitle = document.getElementById('loginTitle');
+(() => {
+  const signinForm = document.getElementById('signinForm');
+  const registerForm = document.getElementById('registerForm');
+  const tabSignin = document.getElementById('tabSignin');
+  const tabRegister = document.getElementById('tabRegister');
+  const switcherIndicator = document.getElementById('switcherIndicator');
+  const errorAlert = document.getElementById('errorAlert');
+  const successAlert = document.getElementById('successAlert');
+
+  const signinRoleToggle = document.getElementById('signinRoleToggle');
+  const signinRoleInput = document.getElementById('signinRole');
   const identifierLabel = document.getElementById('identifierLabel');
   const identifierInput = document.getElementById('identifier');
-  if (roleInput) roleInput.value = role;
-  if (loginTitle) loginTitle.textContent = niceRole + ' Login';
-  document.title = niceRole + ' Login - SR University';
-  if (identifierLabel) identifierLabel.textContent = role === 'STUDENT' ? 'Enrollment Number' : 'Username';
-  if (identifierInput) identifierInput.placeholder = role === 'STUDENT' ? 'Enter Enrollment Number' : 'Enter Username';
-  document.querySelectorAll('[data-role-btn]').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-role-btn') === role);
-  });
-}
 
-// Apply role from URL on load
-(function() {
-  const roleFromUrl = new URLSearchParams(window.location.search).get('role');
-  if (roleFromUrl) applyRole(roleFromUrl);
-})();
+  const registerRoleToggle = document.getElementById('registerRoleToggle');
+  const registerRoleInput = document.getElementById('registerRole');
+  const enrollmentField = document.getElementById('enrollmentField');
+  const usernameField = document.getElementById('usernameField');
+  const enrollmentInput = document.getElementById('enrollmentNumber');
+  const usernameInput = document.getElementById('username');
 
-// In-form tab button click handlers
-document.querySelectorAll('.sru-form-role-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    applyRole(btn.getAttribute('data-role-btn'));
-    const id = document.getElementById('identifier');
-    id.value = '';
-    id.focus();
-  });
-});
+  const captchaCanvas = document.getElementById('captchaCanvas');
+  const refreshCaptchaBtn = document.getElementById('refreshCaptcha');
+  const captchaInput = document.getElementById('captchaInput');
 
-const roleSelect = document.getElementById('role');
-const identifierLabel = document.getElementById('identifierLabel');
-const captchaCanvas = document.getElementById('captchaCanvas');
-const refreshCaptchaBtn = document.getElementById('refreshCaptcha');
-const captchaInput = document.getElementById('captchaInput');
-let activeCaptcha = '';
+  const loader = document.getElementById('loader');
+  const spotlight = document.getElementById('spotlight');
+  const floatingEls = [...document.querySelectorAll('[data-depth]')];
+  const ring = document.getElementById('attendanceRing');
+  const ringValue = document.getElementById('ringValue');
 
-function generateCaptchaText() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
+  const ringCircumference = 2 * Math.PI * 54;
+  let activeCaptcha = '';
+  let rafId = null;
+  let pointerX = window.innerWidth * 0.5;
+  let pointerY = window.innerHeight * 0.5;
 
-function drawCaptcha(text) {
-  const ctx = captchaCanvas.getContext('2d');
-  ctx.clearRect(0, 0, captchaCanvas.width, captchaCanvas.height);
-
-  ctx.fillStyle = '#e0e7ff';
-  ctx.fillRect(0, 0, captchaCanvas.width, captchaCanvas.height);
-
-  for (let i = 0; i < 5; i += 1) {
-    ctx.strokeStyle = `rgba(37, 99, 235, ${0.25 + Math.random() * 0.35})`;
-    ctx.beginPath();
-    ctx.moveTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
-    ctx.lineTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
-    ctx.stroke();
+  function hideAlerts() {
+    errorAlert.classList.remove('show');
+    successAlert.classList.remove('show');
+    errorAlert.textContent = '';
+    successAlert.textContent = '';
   }
 
-  ctx.font = 'bold 30px Sora';
-  ctx.fillStyle = '#1e3a8a';
-  ctx.textBaseline = 'middle';
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-  [...text].forEach((char, index) => {
-    const x = 16 + index * 28;
-    const y = 26 + (Math.random() * 8 - 4);
-    const angle = (Math.random() * 0.35) - 0.175;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.fillText(char, 0, 0);
-    ctx.restore();
-  });
-}
-
-function regenerateCaptcha() {
-  activeCaptcha = generateCaptchaText();
-  drawCaptcha(activeCaptcha);
-  captchaInput.value = '';
-}
-
-// Role switching is now handled by applyRole() + in-form tab buttons above
-
-refreshCaptchaBtn.addEventListener('click', regenerateCaptcha);
-regenerateCaptcha();
-
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const errorAlert = document.getElementById('errorAlert');
-  errorAlert.classList.add('d-none');
-
-  if (captchaInput.value.trim().toUpperCase() !== activeCaptcha) {
-    errorAlert.textContent = 'Invalid captcha. Please try again.';
-    errorAlert.classList.remove('d-none');
-    regenerateCaptcha();
-    return;
+  function showError(message) {
+    successAlert.classList.remove('show');
+    errorAlert.textContent = message;
+    errorAlert.classList.add('show');
   }
 
-  const data = {
-    identifier: document.getElementById('identifier').value,
-    password: document.getElementById('password').value,
-    role: roleSelect.value
-  };
+  function showSuccess(message) {
+    errorAlert.classList.remove('show');
+    successAlert.textContent = message;
+    successAlert.classList.add('show');
+  }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+  function setAuthTab(tabName) {
+    const signinActive = tabName === 'signin';
+    tabSignin.classList.toggle('active', signinActive);
+    tabRegister.classList.toggle('active', !signinActive);
+    signinForm.classList.toggle('active', signinActive);
+    registerForm.classList.toggle('active', !signinActive);
+    switcherIndicator.style.transform = signinActive ? 'translateX(0)' : 'translateX(100%)';
+    hideAlerts();
+  }
+
+  function setSigninRole(role) {
+    if (!['STUDENT', 'STAFF'].includes(role)) return;
+    signinRoleInput.value = role;
+    [...signinRoleToggle.querySelectorAll('button')].forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.role === role);
     });
 
-    const result = await response.json();
+    if (role === 'STUDENT') {
+      identifierLabel.textContent = 'Enrollment Number';
+      identifierInput.placeholder = ' ';
+      document.getElementById('headerStudentBtn')?.classList.add('active');
+      document.getElementById('headerStaffBtn')?.classList.remove('active');
+    } else {
+      identifierLabel.textContent = 'Username';
+      identifierInput.placeholder = ' ';
+      document.getElementById('headerStaffBtn')?.classList.add('active');
+      document.getElementById('headerStudentBtn')?.classList.remove('active');
+    }
+  }
 
-    if (response.ok) {
+  function setRegisterRole(role) {
+    if (!['STUDENT', 'STAFF'].includes(role)) return;
+    registerRoleInput.value = role;
+    [...registerRoleToggle.querySelectorAll('button')].forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.role === role);
+    });
+
+    if (role === 'STUDENT') {
+      enrollmentField.style.display = '';
+      usernameField.style.display = 'none';
+      enrollmentInput.required = true;
+      usernameInput.required = false;
+    } else {
+      enrollmentField.style.display = 'none';
+      usernameField.style.display = '';
+      enrollmentInput.required = false;
+      usernameInput.required = true;
+    }
+  }
+
+  function generateCaptchaText() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
+  function drawCaptcha(text) {
+    const ctx = captchaCanvas.getContext('2d');
+    ctx.clearRect(0, 0, captchaCanvas.width, captchaCanvas.height);
+
+    ctx.fillStyle = '#dbeeff';
+    ctx.fillRect(0, 0, captchaCanvas.width, captchaCanvas.height);
+
+    for (let i = 0; i < 6; i += 1) {
+      ctx.strokeStyle = `rgba(12, 88, 166, ${0.2 + Math.random() * 0.35})`;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
+      ctx.lineTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
+      ctx.stroke();
+    }
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = 'bold 28px Outfit';
+    ctx.fillStyle = '#0c4d98';
+    ctx.textBaseline = 'middle';
+
+    [...text].forEach((char, idx) => {
+      const x = 14 + idx * 33;
+      const y = 27 + (Math.random() * 8 - 4);
+      const angle = (Math.random() * 0.36) - 0.18;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillText(char, 0, 0);
+      ctx.restore();
+    });
+  }
+
+  function regenerateCaptcha() {
+    activeCaptcha = generateCaptchaText();
+    drawCaptcha(activeCaptcha);
+    captchaInput.value = '';
+  }
+
+  function applyPointerEffects() {
+    const xNorm = (pointerX / window.innerWidth - 0.5) * 2;
+    const yNorm = (pointerY / window.innerHeight - 0.5) * 2;
+
+    spotlight.style.left = `${pointerX}px`;
+    spotlight.style.top = `${pointerY}px`;
+
+    floatingEls.forEach((el) => {
+      const depth = Number(el.dataset.depth || 15);
+      el.style.transform = `translate3d(${xNorm * depth * 0.35}px, ${yNorm * depth * 0.35}px, 0)`;
+    });
+
+    rafId = null;
+  }
+
+  function onPointerMove(event) {
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+    if (!rafId) {
+      rafId = requestAnimationFrame(applyPointerEffects);
+    }
+  }
+
+  function createRipple(event) {
+    const btn = event.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.left = `${event.clientX - rect.left}px`;
+    ripple.style.top = `${event.clientY - rect.top}px`;
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 620);
+  }
+
+  function animateMetricBars() {
+    const bars = document.querySelectorAll('.progress-bar');
+    bars.forEach((bar, i) => {
+      const value = Number(bar.dataset.progress || 0);
+      setTimeout(() => {
+        bar.style.width = `${Math.max(0, Math.min(value, 100))}%`;
+      }, 250 + i * 130);
+    });
+  }
+
+  function animateAttendanceRing(targetPercent = 84) {
+    const bounded = Math.max(0, Math.min(targetPercent, 100));
+    let current = 0;
+    ring.style.strokeDasharray = String(ringCircumference);
+    ring.style.strokeDashoffset = String(ringCircumference);
+
+    const timer = setInterval(() => {
+      current += 1;
+      const offset = ringCircumference - (ringCircumference * current) / 100;
+      ring.style.strokeDashoffset = String(offset);
+      ringValue.textContent = `${current}%`;
+      if (current >= bounded) {
+        clearInterval(timer);
+      }
+    }, 16);
+  }
+
+  function validateStrongPassword(password) {
+    return password.length >= 12
+      && /[A-Z]/.test(password)
+      && /[a-z]/.test(password)
+      && /\d/.test(password)
+      && /[^A-Za-z0-9]/.test(password);
+  }
+
+  function resolveRoleFromQuery() {
+    const role = new URLSearchParams(window.location.search).get('role');
+    if (!role) return;
+    const normalized = role.toUpperCase();
+    if (['STUDENT', 'STAFF'].includes(normalized)) {
+      setSigninRole(normalized);
+    }
+  }
+
+  signinRoleToggle.addEventListener('click', (event) => {
+    const btn = event.target.closest('button[data-role]');
+    if (!btn) return;
+    setSigninRole(btn.dataset.role);
+  });
+
+  registerRoleToggle.addEventListener('click', (event) => {
+    const btn = event.target.closest('button[data-role]');
+    if (!btn) return;
+    setRegisterRole(btn.dataset.role);
+  });
+
+  tabSignin.addEventListener('click', () => setAuthTab('signin'));
+  tabRegister.addEventListener('click', () => setAuthTab('register'));
+
+  refreshCaptchaBtn.addEventListener('click', regenerateCaptcha);
+
+  signinForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideAlerts();
+
+    if (captchaInput.value.trim().toUpperCase() !== activeCaptcha) {
+      showError('Invalid captcha. Please try again.');
+      regenerateCaptcha();
+      return;
+    }
+
+    const payload = {
+      identifier: document.getElementById('identifier').value.trim(),
+      password: document.getElementById('password').value,
+      role: signinRoleInput.value
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        showError(result.message || 'Invalid credentials.');
+        regenerateCaptcha();
+        return;
+      }
+
       setToken(result.accessToken);
       setUserRole(result.user.role);
       setUserName(result.user.fullName);
 
-      // Redirect based on role
       if (result.user.role === 'STUDENT') {
         window.location.href = 'pages/student/dashboard.html';
       } else if (result.user.role === 'STAFF') {
         window.location.href = 'pages/staff/dashboard.html';
-      } else if (result.user.role === 'ADMIN') {
+      } else {
         window.location.href = 'pages/admin/dashboard.html';
       }
-    } else {
-      errorAlert.textContent = result.message || 'Invalid credentials';
-      errorAlert.classList.remove('d-none');
+    } catch (_error) {
+      showError('Network error. Please try again.');
       regenerateCaptcha();
     }
-  } catch (error) {
+  });
 
-      // Password suggestion functionality
-      function generateStrongPassword() {
-        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-        const numbers = '0123456789';
-        const symbols = '!@#$%^&*';
-        const allChars = uppercase + lowercase + numbers + symbols;
-  
-        let password = '';
-        password += uppercase[Math.floor(Math.random() * uppercase.length)];
-        password += lowercase[Math.floor(Math.random() * lowercase.length)];
-        password += numbers[Math.floor(Math.random() * numbers.length)];
-        password += symbols[Math.floor(Math.random() * symbols.length)];
-  
-        for (let i = password.length; i < 12; i++) {
-          password += allChars[Math.floor(Math.random() * allChars.length)];
-        }
-  
-        return password.split('').sort(() => Math.random() - 0.5).join('');
+  registerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideAlerts();
+
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (password !== confirmPassword) {
+      showError('Passwords do not match.');
+      return;
+    }
+
+    if (!validateStrongPassword(password)) {
+      showError('Password must be 12+ chars with uppercase, lowercase, number, and symbol.');
+      return;
+    }
+
+    const role = registerRoleInput.value;
+    const payload = {
+      fullName: document.getElementById('fullName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      role,
+      password
+    };
+
+    if (role === 'STUDENT') {
+      payload.enrollmentNumber = enrollmentInput.value.trim();
+    } else {
+      payload.username = usernameInput.value.trim();
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        showError(result.message || 'Registration failed.');
+        return;
       }
 
-      function evaluatePasswordStrength(password) {
-        let strength = 0;
-        const strengthBar = document.getElementById('strengthBar');
-        const strengthText = document.getElementById('strengthText');
-  
-        if (!password) {
-          strengthBar.style.width = '0';
-          strengthBar.style.background = '#ef4444';
-          strengthText.textContent = 'Password strength';
-          return;
-        }
-  
-        if (password.length >= 8) strength += 20;
-        if (password.length >= 12) strength += 10;
-        if (/[a-z]/.test(password)) strength += 20;
-        if (/[A-Z]/.test(password)) strength += 20;
-        if (/\d/.test(password)) strength += 15;
-        if (/[!@#$%^&*]/.test(password)) strength += 15;
-  
-        strengthBar.style.width = strength + '%';
-  
-        if (strength < 30) {
-          strengthBar.style.background = '#ef4444';
-          strengthText.textContent = 'Weak';
-        } else if (strength < 60) {
-          strengthBar.style.background = '#f97316';
-          strengthText.textContent = 'Fair';
-        } else if (strength < 85) {
-          strengthBar.style.background = '#eab308';
-          strengthText.textContent = 'Good';
-        } else {
-          strengthBar.style.background = '#4caf50';
-          strengthText.textContent = 'Strong';
-        }
-      }
+      showSuccess('Registration successful. You can sign in now.');
+      registerForm.reset();
+      setRegisterRole('STUDENT');
+      setTimeout(() => setAuthTab('signin'), 700);
+    } catch (_error) {
+      showError('Network error. Please try again.');
+    }
+  });
 
-      const passwordInput = document.getElementById('password');
-      const suggestPasswordBtn = document.getElementById('suggestPasswordBtn');
-      const suggestedPasswordDiv = document.getElementById('suggestedPassword');
-      const suggestedPasswordInput = document.getElementById('suggestedPasswordInput');
-      const copyPasswordBtn = document.getElementById('copyPasswordBtn');
+  document.querySelectorAll('.ripple-btn').forEach((btn) => {
+    btn.addEventListener('click', createRipple);
+  });
 
-      // Real-time password strength check
-      passwordInput.addEventListener('input', (e) => {
-        evaluatePasswordStrength(e.target.value);
-      });
+  document.addEventListener('mousemove', onPointerMove, { passive: true });
 
-      // Suggest password button
-      suggestPasswordBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const strongPassword = generateStrongPassword();
-        suggestedPasswordInput.value = strongPassword;
-        suggestedPasswordDiv.classList.remove('d-none');
-        evaluatePasswordStrength(strongPassword);
-      });
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      document.body.classList.add('page-ready');
+    }, 480);
+    animateMetricBars();
+    animateAttendanceRing(84);
+  });
 
-      // Copy to clipboard
-      copyPasswordBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          await navigator.clipboard.writeText(suggestedPasswordInput.value);
-          const originalText = copyPasswordBtn.textContent;
-          copyPasswordBtn.textContent = 'Copied!';
-          setTimeout(() => {
-            copyPasswordBtn.textContent = originalText;
-          }, 2000);
-          // Also put it in the password field
-          passwordInput.value = suggestedPasswordInput.value;
-          evaluatePasswordStrength(suggestedPasswordInput.value);
-        } catch (err) {
-          alert('Failed to copy password');
-        }
-      });
-
-
-    errorAlert.textContent = 'Network error. Please try again.';
-    errorAlert.classList.remove('d-none');
-    regenerateCaptcha();
-  }
-});
+  setAuthTab('signin');
+  setSigninRole('STUDENT');
+  setRegisterRole('STUDENT');
+  resolveRoleFromQuery();
+  regenerateCaptcha();
+})();
