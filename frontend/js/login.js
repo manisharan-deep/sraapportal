@@ -183,6 +183,7 @@
 
   function animateMetricBars() {
     const bars = document.querySelectorAll('.progress-bar');
+    if (!bars.length) return;
     bars.forEach((bar, i) => {
       const value = Number(bar.dataset.progress || 0);
       setTimeout(() => {
@@ -192,6 +193,7 @@
   }
 
   function animateAttendanceRing(targetPercent = 84) {
+    if (!ring || !ringValue) return;
     const bounded = Math.max(0, Math.min(targetPercent, 100));
     let current = 0;
     ring.style.strokeDasharray = String(ringCircumference);

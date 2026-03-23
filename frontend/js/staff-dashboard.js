@@ -25,6 +25,68 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   window.location.href = '../../login.html?role=STAFF';
 });
 
+function revealVisibleSections() {
+  document.querySelectorAll('.reveal').forEach((el, index) => {
+    if (el.classList.contains('hidden')) return;
+    setTimeout(() => el.classList.add('in'), 90 + index * 70);
+  });
+}
+
+function initPageReadyState() {
+  const loader = document.getElementById('staffLoader');
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (loader) loader.classList.add('hidden');
+      document.body.classList.add('page-ready');
+      revealVisibleSections();
+    }, 420);
+  });
+}
+
+function initPointerEffects() {
+  const spotlight = document.getElementById('cursorSpotlight');
+  const parallaxNodes = document.querySelectorAll('[data-depth]');
+  if (!spotlight || !parallaxNodes.length) return;
+
+  let frame = null;
+  let pointerX = window.innerWidth * 0.5;
+  let pointerY = window.innerHeight * 0.5;
+
+  const apply = () => {
+    const xNorm = (pointerX / window.innerWidth - 0.5) * 2;
+    const yNorm = (pointerY / window.innerHeight - 0.5) * 2;
+    spotlight.style.left = `${pointerX}px`;
+    spotlight.style.top = `${pointerY}px`;
+
+    parallaxNodes.forEach((node) => {
+      const depth = Number(node.getAttribute('data-depth') || 16);
+      node.style.transform = `translate3d(${xNorm * depth * 0.35}px, ${yNorm * depth * 0.35}px, 0)`;
+    });
+
+    frame = null;
+  };
+
+  document.addEventListener('mousemove', (event) => {
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+    if (!frame) frame = requestAnimationFrame(apply);
+  }, { passive: true });
+}
+
+function initRippleEffects() {
+  document.addEventListener('click', (event) => {
+    const btn = event.target.closest('button, .tab-btn, .btn-primary, .btn-view');
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.left = `${event.clientX - rect.left}px`;
+    ripple.style.top = `${event.clientY - rect.top}px`;
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 620);
+  });
+}
+
 // ── Toast ──────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
@@ -38,6 +100,8 @@ function showToast(msg, type = 'success') {
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${name}`));
+  const activePanel = document.getElementById(`tab-${name}`);
+  if (activePanel) activePanel.classList.add('in');
   if (name === 'students') loadAllStudents();
   if (name === 'announcements') loadRecentAnnouncements();
 }
@@ -667,6 +731,9 @@ document.getElementById('saveMarksBtn').addEventListener('click', async () => {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
+  initPageReadyState();
+  initPointerEffects();
+  initRippleEffects();
   await loadDashboard();
   loadFilters();
   loadStudentDropdowns();
