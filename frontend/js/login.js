@@ -254,8 +254,9 @@
       return;
     }
 
+    const identifierValue = document.getElementById('identifier').value.trim();
     const payload = {
-      identifier: document.getElementById('identifier').value.trim(),
+      identifier: signinRoleInput.value === 'STUDENT' ? identifierValue.toUpperCase() : identifierValue,
       password: document.getElementById('password').value,
       role: signinRoleInput.value
     };

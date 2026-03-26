@@ -19,9 +19,26 @@ const getTwilioClient = () => {
 
 const normalizePhone = (phone) => {
   if (!phone) return '';
-  const cleaned = String(phone).replace(/\s+/g, '').trim();
-  if (!cleaned) return '';
-  return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+  const raw = String(phone).trim();
+  if (!raw) return '';
+
+  if (raw.startsWith('+')) {
+    const digits = raw.slice(1).replace(/\D/g, '');
+    return digits ? `+${digits}` : '';
+  }
+
+  if (raw.startsWith('00')) {
+    const digits = raw.slice(2).replace(/\D/g, '');
+    return digits ? `+${digits}` : '';
+  }
+
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+
+  // Default 10-digit local numbers to India country code.
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+  return `+${digits}`;
 };
 
 const sendAttendanceSms = async ({ studentName, status, subject, date, recipients = [] }) => {

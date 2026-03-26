@@ -76,6 +76,7 @@ const normalizeStatus = (value) => {
 };
 
 const sanitizeHallticket = (value) => String(value || '').trim().toUpperCase();
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const syncStudentAttendanceHistory = async ({ studentId, subject, date, status }) => {
   await Student.updateOne(
@@ -177,7 +178,7 @@ const markBulkAttendance = async (req, res) => {
   const studentIds = records.map((r) => r && r.studentId).filter(Boolean);
   const studentDocs = studentIds.length
     ? await Student.find({ _id: { $in: studentIds } })
-      .select('_id name rollNumber branch semester batch')
+      .select('_id name rollNumber branch semester batch phone studentPhone parentPhone fatherMobile motherMobile')
       .lean()
     : [];
   const studentById = new Map(studentDocs.map((s) => [String(s._id), s]));
@@ -239,10 +240,47 @@ const markBulkAttendance = async (req, res) => {
     }))
   );
 
+  // Trigger SMS just after attendance is saved so parents/students receive near real-time alerts.
+  await wait(1000);
+  const smsResults = await Promise.all(
+    ops.map(async (op) => {
+      const studentId = String(op.updateOne.filter.studentId);
+      const dbStudent = studentById.get(studentId);
+      if (!dbStudent) {
+        return { skipped: true, reason: 'Student profile not found for SMS' };
+      }
+
+      return sendAttendanceSms({
+        studentName: dbStudent.name,
+        status: op.updateOne.update.$set.status,
+        subject: op.updateOne.filter.subject,
+        date: op.updateOne.filter.date,
+        recipients: [
+          dbStudent.studentPhone,
+          dbStudent.phone,
+          dbStudent.parentPhone,
+          dbStudent.fatherMobile,
+          dbStudent.motherMobile
+        ]
+      });
+    })
+  );
+
   await recalculateStudentAttendancePercentages(ops.map((op) => op.updateOne.filter.studentId));
+  const smsSummary = smsResults.reduce((acc, row) => {
+    if (row && !row.skipped) {
+      acc.sent += Array.isArray(row.sent) ? row.sent.length : 0;
+      acc.failed += Array.isArray(row.failed) ? row.failed.length : 0;
+    } else {
+      acc.skipped += 1;
+    }
+    return acc;
+  }, { sent: 0, failed: 0, skipped: 0 });
+
   return res.status(200).json({
     message: `Attendance saved for ${ops.length} student(s)`,
-    updatedCount: ops.length
+    updatedCount: ops.length,
+    sms: smsSummary
   });
 };
 
@@ -318,6 +356,7 @@ const markAttendance = async (req, res) => {
 
   await recalculateStudentAttendancePercentages([student._id]);
 
+  await wait(1000);
   const smsResult = await sendAttendanceSms({
     studentName: student.name,
     status: normalizedStatus,

@@ -75,11 +75,18 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { identifier, password, role } = req.body;
+  const role = String(req.body.role || '').trim().toUpperCase();
+  const identifier = String(req.body.identifier || '').trim();
+  const { password } = req.body;
+
+  if (!['STUDENT', 'STAFF', 'ADMIN'].includes(role) || !identifier || !password) {
+    return res.status(400).json({ message: 'identifier, password and valid role are required' });
+  }
 
   const query = { role };
-  if (role === 'STUDENT') query.enrollmentNumber = identifier;
-  else if (identifier) query.username = identifier;
+  const exactCaseInsensitive = new RegExp(`^${identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  if (role === 'STUDENT') query.enrollmentNumber = exactCaseInsensitive;
+  else query.username = exactCaseInsensitive;
 
   const user = await User.findOne(query);
   if (!user || !(await user.comparePassword(password))) {
