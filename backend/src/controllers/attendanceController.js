@@ -90,6 +90,8 @@ const buildDepartmentFilter = (department) => {
   return { $regex: `^${escapeRegex(raw)}$`, $options: 'i' };
 };
 
+const isDuplicateKeyError = (error) => error && (error.code === 11000 || String(error.message || '').includes('E11000'));
+
 const syncStudentAttendanceHistory = async ({ studentId, subject, date, status }) => {
   await Student.updateOne(
     { _id: studentId },
@@ -262,19 +264,23 @@ const markBulkAttendance = async (req, res) => {
         return { skipped: true, reason: 'Student profile not found for SMS' };
       }
 
-      return sendAttendanceSms({
-        studentName: dbStudent.name,
-        status: op.updateOne.update.$set.status,
-        subject: op.updateOne.filter.subject,
-        date: op.updateOne.filter.date,
-        recipients: [
-          dbStudent.studentPhone,
-          dbStudent.phone,
-          dbStudent.parentPhone,
-          dbStudent.fatherMobile,
-          dbStudent.motherMobile
-        ]
-      });
+      try {
+        return await sendAttendanceSms({
+          studentName: dbStudent.name,
+          status: op.updateOne.update.$set.status,
+          subject: op.updateOne.filter.subject,
+          date: op.updateOne.filter.date,
+          recipients: [
+            dbStudent.studentPhone,
+            dbStudent.phone,
+            dbStudent.parentPhone,
+            dbStudent.fatherMobile,
+            dbStudent.motherMobile
+          ]
+        });
+      } catch (error) {
+        return { skipped: true, reason: `SMS dispatch failed: ${error.message}` };
+      }
     })
   );
 
@@ -372,20 +378,28 @@ const markAttendance = async (req, res) => {
     });
   }
 
-  const attendanceRecord = await Attendance.create({
-    studentId: student._id,
-    hallTicketNumber: student.rollNumber || student.hallticket || normalizedHallticket,
-    name: student.name,
-    studentName: student.name,
-    department: student.branch || normalizedDepartment || 'GENERAL',
-    batch: student.batch || normalizedBatch || '',
-    semester: Number(student.semester || 1),
-    subject: normalizedSubject,
-    date: normalizedDate,
-    status: normalizedStatus,
-    facultyId,
-    markedBy: facultyId
-  });
+  let attendanceRecord;
+  try {
+    attendanceRecord = await Attendance.create({
+      studentId: student._id,
+      hallTicketNumber: student.rollNumber || student.hallticket || normalizedHallticket,
+      name: student.name,
+      studentName: student.name,
+      department: student.branch || normalizedDepartment || 'GENERAL',
+      batch: student.batch || normalizedBatch || '',
+      semester: Number(student.semester || 1),
+      subject: normalizedSubject,
+      date: normalizedDate,
+      status: normalizedStatus,
+      facultyId,
+      markedBy: facultyId
+    });
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      return res.status(409).json({ message: 'Attendance already marked for this subject and date' });
+    }
+    throw error;
+  }
 
   await syncStudentAttendanceHistory({
     studentId: student._id,
@@ -397,19 +411,24 @@ const markAttendance = async (req, res) => {
   await recalculateStudentAttendancePercentages([student._id]);
 
   await wait(1000);
-  const smsResult = await sendAttendanceSms({
-    studentName: student.name,
-    status: normalizedStatus,
-    subject: normalizedSubject,
-    date: normalizedDate,
-    recipients: [
-      student.studentPhone,
-      student.phone,
-      student.parentPhone,
-      student.fatherMobile,
-      student.motherMobile
-    ]
-  });
+  let smsResult;
+  try {
+    smsResult = await sendAttendanceSms({
+      studentName: student.name,
+      status: normalizedStatus,
+      subject: normalizedSubject,
+      date: normalizedDate,
+      recipients: [
+        student.studentPhone,
+        student.phone,
+        student.parentPhone,
+        student.fatherMobile,
+        student.motherMobile
+      ]
+    });
+  } catch (error) {
+    smsResult = { skipped: true, reason: `SMS dispatch failed: ${error.message}` };
+  }
 
   return res.status(201).json({
     message: 'Attendance saved successfully',
