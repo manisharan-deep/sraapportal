@@ -138,11 +138,18 @@ const attendanceDefaultSubjects = {
 };
 
 function normalizeDepartmentForAttendance(value) {
-  const raw = String(value || '').trim().toUpperCase();
+  const raw = String(value || '').trim();
   if (!raw) return '';
-  if (raw.includes('AIML')) return 'AIML';
-  if (raw === 'CSE (AI & ML)') return 'AIML';
   return raw;
+}
+
+function getDefaultSubjectsForDepartment(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return [];
+  if (raw.includes('AIML') || raw === 'CSE (AI & ML)') {
+    return attendanceDefaultSubjects.AIML || [];
+  }
+  return attendanceDefaultSubjects[raw] || [];
 }
 
 // ── Load dashboard overview ────────────────────────────────────────────────
@@ -338,7 +345,7 @@ async function refreshAttendanceSubjectsForStudent() {
       : [];
     const fallbackSubjects = Array.isArray(data.subjects) ? data.subjects : [];
     const selectedDepartment = normalizeDepartmentForAttendance(departmentEl.value);
-    const defaultSubjects = attendanceDefaultSubjects[selectedDepartment] || [];
+    const defaultSubjects = getDefaultSubjectsForDepartment(selectedDepartment);
     const finalSubjects = studentSubjects.length ? studentSubjects : (fallbackSubjects.length ? fallbackSubjects : defaultSubjects);
 
     subjectEl.innerHTML = '<option value="">Select subject...</option>';

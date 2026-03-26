@@ -79,6 +79,17 @@ const normalizeStatus = (value) => {
 const sanitizeHallticket = (value) => String(value || '').trim().toUpperCase();
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildDepartmentFilter = (department) => {
+  const raw = String(department || '').trim();
+  if (!raw) return null;
+  if (raw.toUpperCase().includes('AIML')) {
+    return { $regex: 'AIML', $options: 'i' };
+  }
+  return { $regex: `^${escapeRegex(raw)}$`, $options: 'i' };
+};
+
 const syncStudentAttendanceHistory = async ({ studentId, subject, date, status }) => {
   await Student.updateOne(
     { _id: studentId },
@@ -290,7 +301,7 @@ const markAttendance = async (req, res) => {
 
   const normalizedHallticket = sanitizeHallticket(hallticket);
   const normalizedBatch = String(batch || '').trim();
-  const normalizedDepartment = String(department || '').trim().toUpperCase();
+  const normalizedDepartment = String(department || '').trim();
   const normalizedSubject = String(subject || '').trim();
   const normalizedStatus = normalizeStatus(status);
   const normalizedDate = normalizeDate(date || new Date());
@@ -314,13 +325,16 @@ const markAttendance = async (req, res) => {
     students = studentById ? [studentById] : [];
   } else {
     const studentFilter = {
-      $or: [
-        { hallticket: normalizedHallticket },
-        { rollNumber: normalizedHallticket }
-      ]
+      $or: normalizedHallticket
+        ? [
+            { hallticket: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } },
+            { rollNumber: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } }
+          ]
+        : []
     };
     if (normalizedBatch) studentFilter.batch = normalizedBatch;
-    if (normalizedDepartment) studentFilter.branch = normalizedDepartment;
+    const departmentFilter = buildDepartmentFilter(normalizedDepartment);
+    if (departmentFilter) studentFilter.branch = departmentFilter;
 
     students = await Student.find(studentFilter)
       .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
@@ -408,7 +422,7 @@ const getStudentAttendanceHistory = async (req, res) => {
   const { studentId, hallticket, batch, department, subject, page = 1, limit = 20 } = req.query;
   const normalizedHallticket = sanitizeHallticket(hallticket);
   const normalizedBatch = String(batch || '').trim();
-  const normalizedDepartment = String(department || '').trim().toUpperCase();
+  const normalizedDepartment = String(department || '').trim();
 
   if (!studentId && !normalizedHallticket) {
     return res.status(400).json({ message: 'studentId or hallticket is required' });
@@ -423,12 +437,13 @@ const getStudentAttendanceHistory = async (req, res) => {
   } else {
     const studentFilter = {
       $or: [
-        { hallticket: normalizedHallticket },
-        { rollNumber: normalizedHallticket }
+        { hallticket: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } },
+        { rollNumber: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } }
       ]
     };
     if (normalizedBatch) studentFilter.batch = normalizedBatch;
-    if (normalizedDepartment) studentFilter.branch = normalizedDepartment;
+    const departmentFilter = buildDepartmentFilter(normalizedDepartment);
+    if (departmentFilter) studentFilter.branch = departmentFilter;
 
     students = await Student.find(studentFilter)
       .select('_id name rollNumber hallticket batch')
@@ -483,10 +498,16 @@ const getAttendanceStudentOptions = async (req, res) => {
   const { batch, hallticket, department } = req.query;
   const filter = {};
   if (batch) filter.batch = String(batch).trim();
-  if (department) filter.branch = String(department).trim().toUpperCase();
+  if (department) {
+    const departmentFilter = buildDepartmentFilter(String(department).trim());
+    if (departmentFilter) filter.branch = departmentFilter;
+  }
   if (hallticket) {
     const normalizedHallticket = sanitizeHallticket(hallticket);
-    filter.$or = [{ rollNumber: normalizedHallticket }, { hallticket: normalizedHallticket }];
+    filter.$or = [
+      { rollNumber: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } },
+      { hallticket: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } }
+    ];
   }
 
   const students = await Student.find(filter)
