@@ -4,6 +4,8 @@ const Student = require('../models/Student');
 const Course = require('../models/Course');
 const mongoose = require('mongoose');
 const { attendanceSmsQueue } = require('../queues/attendanceSmsQueue');
+const logger = require('../utils/logger');
+const { sendAttendanceSms } = require('../services/smsService');
 
 const normalizeDate = (dateInput) => {
   const dt = new Date(dateInput);
@@ -90,6 +92,54 @@ const buildDepartmentFilter = (department) => {
 };
 
 const isDuplicateKeyError = (error) => error && (error.code === 11000 || String(error.message || '').includes('E11000'));
+
+const enqueueAttendanceSms = async (payload) => {
+  try {
+    await attendanceSmsQueue.add(payload, {
+      delay: 0,
+      timeout: 60000
+    });
+    return { queued: true };
+  } catch (error) {
+    logger.error('Attendance SMS queue enqueue failed', {
+      studentId: payload.studentId,
+      error: error.message
+    });
+    return { queued: false, reason: error.message };
+  }
+};
+
+const sendAttendanceSmsDirect = async ({ studentId, studentName, status, date }) => {
+  const studentProfile = await Student.findById(studentId)
+    .select('name phone studentPhone parentPhone fatherMobile motherMobile')
+    .lean();
+
+  if (!studentProfile) {
+    return { skipped: true, reason: 'Student profile not found for direct SMS' };
+  }
+
+  const recipients = [
+    studentProfile.studentPhone,
+    studentProfile.phone,
+    studentProfile.parentPhone,
+    studentProfile.fatherMobile,
+    studentProfile.motherMobile
+  ].filter(Boolean);
+
+  if (!recipients.length) {
+    return { skipped: true, reason: 'No student/parent mobile numbers found' };
+  }
+
+  const smsText = `Attendance Alert: ${studentName || studentProfile.name} was marked ${status} on ${new Date(date).toISOString().split('T')[0]}.`;
+
+  return sendAttendanceSms({
+    studentName: studentName || studentProfile.name,
+    status,
+    date,
+    recipients,
+    customMessage: smsText
+  });
+};
 
 const syncStudentAttendanceHistory = async ({ studentId, subject, date, status }) => {
   await Student.updateOne(
@@ -253,19 +303,39 @@ const markBulkAttendance = async (req, res) => {
     }))
   );
 
-  await Promise.all(
-    ops.map((op) => attendanceSmsQueue.add(
-      {
-        studentId: String(op.updateOne.filter.studentId),
-        studentName: op.updateOne.update.$set.studentName,
-        status: op.updateOne.update.$set.status,
-        date: op.updateOne.filter.date
-      },
-      {
-        delay: 0,
-        timeout: 60000
+  const queueResults = await Promise.all(
+    ops.map((op) => enqueueAttendanceSms({
+      studentId: String(op.updateOne.filter.studentId),
+      studentName: op.updateOne.update.$set.studentName,
+      status: op.updateOne.update.$set.status,
+      date: op.updateOne.filter.date
+    }))
+  );
+
+  const fallbackTargets = ops
+    .map((op, idx) => ({
+      op,
+      queue: queueResults[idx]
+    }))
+    .filter((row) => !row.queue.queued);
+
+  const directSmsResults = await Promise.all(
+    fallbackTargets.map(async (row) => {
+      try {
+        return await sendAttendanceSmsDirect({
+          studentId: String(row.op.updateOne.filter.studentId),
+          studentName: row.op.updateOne.update.$set.studentName,
+          status: row.op.updateOne.update.$set.status,
+          date: row.op.updateOne.filter.date
+        });
+      } catch (error) {
+        logger.error('Direct SMS fallback failed', {
+          studentId: String(row.op.updateOne.filter.studentId),
+          error: error.message
+        });
+        return { skipped: true, reason: error.message };
       }
-    ))
+    })
   );
 
   await recalculateStudentAttendancePercentages(ops.map((op) => op.updateOne.filter.studentId));
@@ -273,8 +343,12 @@ const markBulkAttendance = async (req, res) => {
     message: `Attendance saved for ${ops.length} student(s)`,
     updatedCount: ops.length,
     sms: {
-      queued: ops.length,
-      status: 'queued_for_async_dispatch'
+      queued: queueResults.filter((row) => row.queued).length,
+      failedToQueue: queueResults.filter((row) => !row.queued).length,
+      directFallbackAttempted: fallbackTargets.length,
+      directFallbackSent: directSmsResults.reduce((sum, row) => sum + (Array.isArray(row.sent) ? row.sent.length : 0), 0),
+      directFallbackFailed: directSmsResults.reduce((sum, row) => sum + (Array.isArray(row.failed) ? row.failed.length : 0), 0),
+      status: 'async_dispatch_attempted'
     }
   });
 };
@@ -387,25 +461,42 @@ const markAttendance = async (req, res) => {
 
   await recalculateStudentAttendancePercentages([student._id]);
 
-  await attendanceSmsQueue.add(
+  const queueResult = await enqueueAttendanceSms(
     {
       studentId: String(student._id),
       studentName: student.name,
       status: normalizedStatus,
       date: normalizedDate
-    },
-    {
-      delay: 0,
-      timeout: 60000
     }
   );
+
+  let fallbackSummary = null;
+  if (!queueResult.queued) {
+    try {
+      const directResult = await sendAttendanceSmsDirect({
+        studentId: String(student._id),
+        studentName: student.name,
+        status: normalizedStatus,
+        date: normalizedDate
+      });
+      fallbackSummary = {
+        sent: Array.isArray(directResult.sent) ? directResult.sent.length : 0,
+        failed: Array.isArray(directResult.failed) ? directResult.failed.length : 0,
+        skipped: Boolean(directResult.skipped)
+      };
+    } catch (error) {
+      logger.error('Direct SMS fallback failed', { studentId: String(student._id), error: error.message });
+      fallbackSummary = { sent: 0, failed: 0, skipped: true };
+    }
+  }
 
   return res.status(201).json({
     message: 'Attendance saved successfully',
     attendance: attendanceRecord,
     sms: {
-      queued: true,
-      status: 'queued_for_async_dispatch'
+      queued: queueResult.queued,
+      fallback: fallbackSummary,
+      status: queueResult.queued ? 'queued_for_async_dispatch' : 'queue_unavailable_fallback_attempted'
     }
   });
 };
