@@ -64,7 +64,7 @@ async function sendDailyAttendanceForStudent(student, fromDate, toDate, dateText
     .lean();
 
   const total = attendanceRecords.length;
-  const present = attendanceRecords.filter((record) => record.status === 'PRESENT').length;
+  const present = attendanceRecords.filter((record) => String(record.status || '').toLowerCase() === 'present').length;
   const absent = total - present;
   const attendancePercent = total > 0 ? ((present / total) * 100).toFixed(2) : '0.00';
 
@@ -75,7 +75,7 @@ async function sendDailyAttendanceForStudent(student, fromDate, toDate, dateText
       acc[key] = { label: courseLabel, present: 0, total: 0 };
     }
     acc[key].total += 1;
-    if (record.status === 'PRESENT') {
+    if (String(record.status || '').toLowerCase() === 'present') {
       acc[key].present += 1;
     }
     return acc;

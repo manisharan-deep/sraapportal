@@ -286,17 +286,18 @@ const markBulkAttendance = async (req, res) => {
 };
 
 const markAttendance = async (req, res) => {
-  const { hallticket, batch, subject, status, date } = req.body;
+  const { studentId, hallticket, batch, department, subject, status, date } = req.body;
 
   const normalizedHallticket = sanitizeHallticket(hallticket);
   const normalizedBatch = String(batch || '').trim();
+  const normalizedDepartment = String(department || '').trim().toUpperCase();
   const normalizedSubject = String(subject || '').trim();
   const normalizedStatus = normalizeStatus(status);
   const normalizedDate = normalizeDate(date || new Date());
 
-  if (!normalizedHallticket || !normalizedSubject || !normalizedStatus || !normalizedDate) {
+  if ((!studentId && !normalizedHallticket) || !normalizedSubject || !normalizedStatus || !normalizedDate) {
     return res.status(400).json({
-      message: 'hallticket, subject, status (Present/Absent), and a valid date are required'
+      message: 'studentId or hallticket, subject, status (Present/Absent), and a valid date are required'
     });
   }
 
@@ -305,26 +306,35 @@ const markAttendance = async (req, res) => {
     return res.status(404).json({ message: 'Staff profile not found' });
   }
 
-  const studentFilter = {
-    $or: [
-      { hallticket: normalizedHallticket },
-      { rollNumber: normalizedHallticket }
-    ]
-  };
-  if (normalizedBatch) studentFilter.batch = normalizedBatch;
+  let students = [];
+  if (studentId) {
+    const studentById = await Student.findById(studentId)
+      .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
+      .lean();
+    students = studentById ? [studentById] : [];
+  } else {
+    const studentFilter = {
+      $or: [
+        { hallticket: normalizedHallticket },
+        { rollNumber: normalizedHallticket }
+      ]
+    };
+    if (normalizedBatch) studentFilter.batch = normalizedBatch;
+    if (normalizedDepartment) studentFilter.branch = normalizedDepartment;
 
-  const students = await Student.find(studentFilter)
-    .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
-    .limit(2)
-    .lean();
-
-  if (!students.length) {
-    return res.status(404).json({ message: 'Student not found for provided hallticket and batch' });
+    students = await Student.find(studentFilter)
+      .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
+      .limit(2)
+      .lean();
   }
 
-  if (!normalizedBatch && students.length > 1) {
+  if (!students.length) {
+    return res.status(404).json({ message: 'Student not found for provided details' });
+  }
+
+  if (!studentId && !normalizedBatch && !normalizedDepartment && students.length > 1) {
     return res.status(400).json({
-      message: 'Multiple students found for hallticket. Please select batch explicitly.'
+      message: 'Multiple students found for hallticket. Please select department or batch.'
     });
   }
 
@@ -353,7 +363,7 @@ const markAttendance = async (req, res) => {
     hallTicketNumber: student.rollNumber || student.hallticket || normalizedHallticket,
     name: student.name,
     studentName: student.name,
-    department: student.branch || 'GENERAL',
+    department: student.branch || normalizedDepartment || 'GENERAL',
     batch: student.batch || normalizedBatch || '',
     semester: Number(student.semester || 1),
     subject: normalizedSubject,
@@ -395,33 +405,43 @@ const markAttendance = async (req, res) => {
 };
 
 const getStudentAttendanceHistory = async (req, res) => {
-  const { hallticket, batch, subject, page = 1, limit = 20 } = req.query;
+  const { studentId, hallticket, batch, department, subject, page = 1, limit = 20 } = req.query;
   const normalizedHallticket = sanitizeHallticket(hallticket);
   const normalizedBatch = String(batch || '').trim();
+  const normalizedDepartment = String(department || '').trim().toUpperCase();
 
-  if (!normalizedHallticket) {
-    return res.status(400).json({ message: 'hallticket is required' });
+  if (!studentId && !normalizedHallticket) {
+    return res.status(400).json({ message: 'studentId or hallticket is required' });
   }
 
-  const studentFilter = {
-    $or: [
-      { hallticket: normalizedHallticket },
-      { rollNumber: normalizedHallticket }
-    ]
-  };
-  if (normalizedBatch) studentFilter.batch = normalizedBatch;
+  let students = [];
+  if (studentId) {
+    const studentById = await Student.findById(studentId)
+      .select('_id name rollNumber hallticket batch')
+      .lean();
+    students = studentById ? [studentById] : [];
+  } else {
+    const studentFilter = {
+      $or: [
+        { hallticket: normalizedHallticket },
+        { rollNumber: normalizedHallticket }
+      ]
+    };
+    if (normalizedBatch) studentFilter.batch = normalizedBatch;
+    if (normalizedDepartment) studentFilter.branch = normalizedDepartment;
 
-  const students = await Student.find(studentFilter)
-    .select('_id name rollNumber hallticket batch')
-    .limit(2)
-    .lean();
+    students = await Student.find(studentFilter)
+      .select('_id name rollNumber hallticket batch')
+      .limit(2)
+      .lean();
+  }
 
   if (!students.length) {
-    return res.status(404).json({ message: 'Student not found for provided hallticket and batch' });
+    return res.status(404).json({ message: 'Student not found for provided details' });
   }
 
-  if (!normalizedBatch && students.length > 1) {
-    return res.status(400).json({ message: 'Multiple students found. Select batch to load history.' });
+  if (!studentId && !normalizedBatch && !normalizedDepartment && students.length > 1) {
+    return res.status(400).json({ message: 'Multiple students found. Select department or batch to load history.' });
   }
 
   const student = students[0];
@@ -460,9 +480,10 @@ const getStudentAttendanceHistory = async (req, res) => {
 };
 
 const getAttendanceStudentOptions = async (req, res) => {
-  const { batch, hallticket } = req.query;
+  const { batch, hallticket, department } = req.query;
   const filter = {};
   if (batch) filter.batch = String(batch).trim();
+  if (department) filter.branch = String(department).trim().toUpperCase();
   if (hallticket) {
     const normalizedHallticket = sanitizeHallticket(hallticket);
     filter.$or = [{ rollNumber: normalizedHallticket }, { hallticket: normalizedHallticket }];
@@ -475,6 +496,7 @@ const getAttendanceStudentOptions = async (req, res) => {
     .lean();
 
   const batchOptions = [...new Set(students.map((s) => s.batch).filter(Boolean))].sort();
+  const departmentOptions = [...new Set(students.map((s) => s.branch).filter(Boolean))].sort();
 
   let subjectOptions = [...new Set(students.flatMap((s) => Array.isArray(s.subjects) ? s.subjects : []).filter(Boolean))].sort();
 
@@ -489,6 +511,7 @@ const getAttendanceStudentOptions = async (req, res) => {
   }
 
   return res.json({
+    departments: departmentOptions,
     batches: batchOptions,
     subjects: subjectOptions,
     students: students.map((student) => ({

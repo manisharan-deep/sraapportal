@@ -131,6 +131,10 @@ const attendanceState = {
   historyLoading: false
 };
 
+const attendanceDefaultSubjects = {
+  AIML: ['Deep Learning', 'Machine Learning', 'Computer Vision', 'Natural Language Processing', 'Data Mining']
+};
+
 // ── Load dashboard overview ────────────────────────────────────────────────
 async function loadDashboard() {
   try {
@@ -245,7 +249,7 @@ function getSelectedAttendanceStatus() {
 async function loadAttendanceOptions() {
   if (attendanceState.optionsLoaded) return;
 
-  const batchEl = document.getElementById('att-batch');
+  const departmentEl = document.getElementById('att-department');
   const subjectEl = document.getElementById('att-subject');
   const dateEl = document.getElementById('att-date');
 
@@ -256,13 +260,21 @@ async function loadAttendanceOptions() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to load attendance options');
 
-    batchEl.innerHTML = '<option value="">Select batch...</option>';
-    (data.batches || []).forEach((batch) => {
+    departmentEl.innerHTML = '<option value="">Select department...</option>';
+    const departments = (data.departments && data.departments.length)
+      ? data.departments
+      : ['AIML', 'CSE', 'ECE', 'EEE', 'MECH', 'CIVIL'];
+
+    departments.forEach((department) => {
       const option = document.createElement('option');
-      option.value = batch;
-      option.textContent = batch;
-      batchEl.appendChild(option);
+      option.value = department;
+      option.textContent = department;
+      departmentEl.appendChild(option);
     });
+
+    if (departments.includes('AIML')) {
+      departmentEl.value = 'AIML';
+    }
 
     subjectEl.innerHTML = '<option value="">Select subject...</option>';
     (data.subjects || []).forEach((subject) => {
@@ -271,6 +283,15 @@ async function loadAttendanceOptions() {
       option.textContent = subject;
       subjectEl.appendChild(option);
     });
+
+    if (subjectEl.options.length <= 1 && departmentEl.value && attendanceDefaultSubjects[departmentEl.value]) {
+      attendanceDefaultSubjects[departmentEl.value].forEach((subject) => {
+        const option = document.createElement('option');
+        option.value = subject;
+        option.textContent = subject;
+        subjectEl.appendChild(option);
+      });
+    }
 
     if (subjectEl.options.length > 1) {
       subjectEl.selectedIndex = 1;
@@ -284,27 +305,30 @@ async function loadAttendanceOptions() {
 
 async function refreshAttendanceSubjectsForStudent() {
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
-  const batchEl = document.getElementById('att-batch');
-  const batch = batchEl.value;
+  const departmentEl = document.getElementById('att-department');
+  const department = departmentEl.value;
   const subjectEl = document.getElementById('att-subject');
-  if (!hallticket) return;
+  if (!hallticket && !department) return;
 
   try {
-    const query = new URLSearchParams({ hallticket });
-    if (batch) query.set('batch', batch);
+    const query = new URLSearchParams();
+    if (hallticket) query.set('hallticket', hallticket);
+    if (department) query.set('department', department);
     const res = await apiRequest(`/attendance/student-options?${query}`);
     const data = await res.json();
     if (!res.ok) return;
 
-    if (!batch && Array.isArray(data.students) && data.students.length === 1 && data.students[0].batch) {
-      batchEl.value = data.students[0].batch;
+    if (!department && Array.isArray(data.students) && data.students.length === 1 && data.students[0].branch) {
+      departmentEl.value = data.students[0].branch;
     }
 
     const studentSubjects = (data.students && data.students[0] && Array.isArray(data.students[0].subjects))
       ? data.students[0].subjects
       : [];
     const fallbackSubjects = Array.isArray(data.subjects) ? data.subjects : [];
-    const finalSubjects = studentSubjects.length ? studentSubjects : fallbackSubjects;
+    const selectedDepartment = departmentEl.value;
+    const defaultSubjects = attendanceDefaultSubjects[selectedDepartment] || [];
+    const finalSubjects = studentSubjects.length ? studentSubjects : (fallbackSubjects.length ? fallbackSubjects : defaultSubjects);
 
     subjectEl.innerHTML = '<option value="">Select subject...</option>';
     finalSubjects.forEach((subject) => {
@@ -326,7 +350,7 @@ async function loadAttendanceHistory() {
   if (attendanceState.historyLoading) return;
 
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
-  const batch = document.getElementById('att-batch').value;
+  const department = document.getElementById('att-department').value;
   const tbody = document.getElementById('att-history-body');
 
   if (!hallticket) {
@@ -339,7 +363,7 @@ async function loadAttendanceHistory() {
 
   try {
     const query = new URLSearchParams({ hallticket, page: '1', limit: '30' });
-    if (batch) query.set('batch', batch);
+    if (department) query.set('department', department);
     const res = await apiRequest(`/attendance/history?${query}`);
     const data = await res.json();
 
@@ -375,7 +399,7 @@ async function submitAttendanceForm() {
 
   clearAttendanceMessage();
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
-  const batch = document.getElementById('att-batch').value;
+  const department = document.getElementById('att-department').value;
   const subject = document.getElementById('att-subject').value;
   const date = document.getElementById('att-date').value;
   const status = getSelectedAttendanceStatus();
@@ -393,7 +417,7 @@ async function submitAttendanceForm() {
   try {
     const res = await apiRequest('/attendance/mark-attendance', {
       method: 'POST',
-      body: JSON.stringify({ hallticket, batch, subject, date, status })
+      body: JSON.stringify({ hallticket, department, subject, date, status })
     });
     const data = await res.json();
 
@@ -428,7 +452,7 @@ document.getElementById('att-submit-btn')?.addEventListener('click', submitAtten
 document.getElementById('att-history-btn')?.addEventListener('click', loadAttendanceHistory);
 document.getElementById('att-hallticket')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
 document.getElementById('att-hallticket')?.addEventListener('input', refreshAttendanceSubjectsForStudent);
-document.getElementById('att-batch')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
+document.getElementById('att-department')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
 
 // ══════════════════════════════════════════════════════════════════════════
 // ALL STUDENTS TAB
@@ -680,6 +704,7 @@ document.getElementById('modal-att-save').addEventListener('click', async () => 
   }
 
   const studentBatch = (currentModalStudent.batch || '').trim();
+  const studentDepartment = (currentModalStudent.branch || '').trim();
 
   if (!currentModalStudent.rollNumber || !currentModalStudent.name) {
     showToast('Student profile is missing roll number or name', 'error');
@@ -691,8 +716,10 @@ document.getElementById('modal-att-save').addEventListener('click', async () => 
     const res = await apiRequest('/attendance/mark-attendance', {
       method: 'POST',
       body: JSON.stringify({
+        studentId: currentModalStudent._id,
         hallticket: currentModalStudent.rollNumber,
         batch: studentBatch,
+        department: studentDepartment,
         subject,
         date,
         status: currentModalAttStatus
