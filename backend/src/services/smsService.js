@@ -43,7 +43,7 @@ const normalizePhone = (phone) => {
   return `+${digits}`;
 };
 
-const sendAttendanceSms = async ({ studentName, status, subject, date, recipients = [] }) => {
+const sendAttendanceSms = async ({ studentName, status, subject, date, recipients = [], customMessage }) => {
   if (!env.attendanceSmsEnabled) {
     return { skipped: true, reason: 'Attendance SMS disabled by env' };
   }
@@ -54,7 +54,7 @@ const sendAttendanceSms = async ({ studentName, status, subject, date, recipient
   }
 
   const formattedDate = new Date(date).toISOString().split('T')[0];
-  const body = `Dear Parent, your child ${studentName} is marked as ${status} for ${subject} on ${formattedDate}.`;
+  const body = customMessage || `Attendance Alert: ${studentName} was marked ${status} on ${formattedDate}.`;
 
   const sent = [];
   const failed = [];

@@ -3,7 +3,7 @@ const Staff = require('../models/Staff');
 const Student = require('../models/Student');
 const Course = require('../models/Course');
 const mongoose = require('mongoose');
-const { sendAttendanceSms } = require('../services/smsService');
+const { attendanceSmsQueue } = require('../queues/attendanceSmsQueue');
 
 const normalizeDate = (dateInput) => {
   const dt = new Date(dateInput);
@@ -77,7 +77,6 @@ const normalizeStatus = (value) => {
 };
 
 const sanitizeHallticket = (value) => String(value || '').trim().toUpperCase();
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -254,51 +253,29 @@ const markBulkAttendance = async (req, res) => {
     }))
   );
 
-  // Trigger SMS just after attendance is saved so parents/students receive near real-time alerts.
-  await wait(1000);
-  const smsResults = await Promise.all(
-    ops.map(async (op) => {
-      const studentId = String(op.updateOne.filter.studentId);
-      const dbStudent = studentById.get(studentId);
-      if (!dbStudent) {
-        return { skipped: true, reason: 'Student profile not found for SMS' };
+  await Promise.all(
+    ops.map((op) => attendanceSmsQueue.add(
+      {
+        studentId: String(op.updateOne.filter.studentId),
+        studentName: op.updateOne.update.$set.studentName,
+        status: op.updateOne.update.$set.status,
+        date: op.updateOne.filter.date
+      },
+      {
+        delay: 0,
+        timeout: 60000
       }
-
-      try {
-        return await sendAttendanceSms({
-          studentName: dbStudent.name,
-          status: op.updateOne.update.$set.status,
-          subject: op.updateOne.filter.subject,
-          date: op.updateOne.filter.date,
-          recipients: [
-            dbStudent.studentPhone,
-            dbStudent.phone,
-            dbStudent.parentPhone,
-            dbStudent.fatherMobile,
-            dbStudent.motherMobile
-          ]
-        });
-      } catch (error) {
-        return { skipped: true, reason: `SMS dispatch failed: ${error.message}` };
-      }
-    })
+    ))
   );
 
   await recalculateStudentAttendancePercentages(ops.map((op) => op.updateOne.filter.studentId));
-  const smsSummary = smsResults.reduce((acc, row) => {
-    if (row && !row.skipped) {
-      acc.sent += Array.isArray(row.sent) ? row.sent.length : 0;
-      acc.failed += Array.isArray(row.failed) ? row.failed.length : 0;
-    } else {
-      acc.skipped += 1;
-    }
-    return acc;
-  }, { sent: 0, failed: 0, skipped: 0 });
-
   return res.status(200).json({
     message: `Attendance saved for ${ops.length} student(s)`,
     updatedCount: ops.length,
-    sms: smsSummary
+    sms: {
+      queued: ops.length,
+      status: 'queued_for_async_dispatch'
+    }
   });
 };
 
@@ -410,30 +387,26 @@ const markAttendance = async (req, res) => {
 
   await recalculateStudentAttendancePercentages([student._id]);
 
-  await wait(1000);
-  let smsResult;
-  try {
-    smsResult = await sendAttendanceSms({
+  await attendanceSmsQueue.add(
+    {
+      studentId: String(student._id),
       studentName: student.name,
       status: normalizedStatus,
-      subject: normalizedSubject,
-      date: normalizedDate,
-      recipients: [
-        student.studentPhone,
-        student.phone,
-        student.parentPhone,
-        student.fatherMobile,
-        student.motherMobile
-      ]
-    });
-  } catch (error) {
-    smsResult = { skipped: true, reason: `SMS dispatch failed: ${error.message}` };
-  }
+      date: normalizedDate
+    },
+    {
+      delay: 0,
+      timeout: 60000
+    }
+  );
 
   return res.status(201).json({
     message: 'Attendance saved successfully',
     attendance: attendanceRecord,
-    sms: smsResult
+    sms: {
+      queued: true,
+      status: 'queued_for_async_dispatch'
+    }
   });
 };
 

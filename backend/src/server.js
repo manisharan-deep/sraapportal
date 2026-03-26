@@ -3,6 +3,7 @@ const env = require('./config/env');
 const { connectDatabase } = require('./config/database');
 const { connectRedis } = require('./config/redis');
 const { startDailyAttendanceWhatsappJob } = require('./services/dailyAttendanceWhatsappJob');
+const { startAttendanceSmsWorker } = require('./workers/attendanceSmsWorker');
 const logger = require('./utils/logger');
 
 const startServer = async () => {
@@ -17,6 +18,7 @@ const startServer = async () => {
 
     // Start daily automated attendance reports to WhatsApp contacts in student profile.
     startDailyAttendanceWhatsappJob();
+    startAttendanceSmsWorker();
 
     app.listen(env.port, () => {
       logger.info(`Server running on port ${env.port}`);
