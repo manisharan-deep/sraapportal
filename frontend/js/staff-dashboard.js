@@ -132,8 +132,18 @@ const attendanceState = {
 };
 
 const attendanceDefaultSubjects = {
-  AIML: ['Deep Learning', 'Machine Learning', 'Computer Vision', 'Natural Language Processing', 'Data Mining']
+  AIML: ['Deep Learning', 'Machine Learning', 'Computer Vision', 'Natural Language Processing', 'Data Mining'],
+  'CSE(AIML)': ['Deep Learning', 'Machine Learning', 'Computer Vision', 'Natural Language Processing', 'Data Mining'],
+  'CSE-AIML': ['Deep Learning', 'Machine Learning', 'Computer Vision', 'Natural Language Processing', 'Data Mining']
 };
+
+function normalizeDepartmentForAttendance(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return '';
+  if (raw.includes('AIML')) return 'AIML';
+  if (raw === 'CSE (AI & ML)') return 'AIML';
+  return raw;
+}
 
 // ── Load dashboard overview ────────────────────────────────────────────────
 async function loadDashboard() {
@@ -272,9 +282,8 @@ async function loadAttendanceOptions() {
       departmentEl.appendChild(option);
     });
 
-    if (departments.includes('AIML')) {
-      departmentEl.value = 'AIML';
-    }
+    const preferredDepartment = departments.find((dep) => String(dep).toUpperCase().includes('AIML'));
+    if (preferredDepartment) departmentEl.value = preferredDepartment;
 
     subjectEl.innerHTML = '<option value="">Select subject...</option>';
     (data.subjects || []).forEach((subject) => {
@@ -307,13 +316,15 @@ async function refreshAttendanceSubjectsForStudent() {
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
   const departmentEl = document.getElementById('att-department');
   const department = departmentEl.value;
+  const normalizedDepartment = normalizeDepartmentForAttendance(department);
   const subjectEl = document.getElementById('att-subject');
   if (!hallticket && !department) return;
 
   try {
     const query = new URLSearchParams();
     if (hallticket) query.set('hallticket', hallticket);
-    if (department) query.set('department', department);
+    // Use hallticket as primary key for subject lookup; department can block matches when labels differ.
+    if (!hallticket && normalizedDepartment) query.set('department', normalizedDepartment);
     const res = await apiRequest(`/attendance/student-options?${query}`);
     const data = await res.json();
     if (!res.ok) return;
@@ -326,7 +337,7 @@ async function refreshAttendanceSubjectsForStudent() {
       ? data.students[0].subjects
       : [];
     const fallbackSubjects = Array.isArray(data.subjects) ? data.subjects : [];
-    const selectedDepartment = departmentEl.value;
+    const selectedDepartment = normalizeDepartmentForAttendance(departmentEl.value);
     const defaultSubjects = attendanceDefaultSubjects[selectedDepartment] || [];
     const finalSubjects = studentSubjects.length ? studentSubjects : (fallbackSubjects.length ? fallbackSubjects : defaultSubjects);
 
@@ -351,6 +362,7 @@ async function loadAttendanceHistory() {
 
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
   const department = document.getElementById('att-department').value;
+  const normalizedDepartment = normalizeDepartmentForAttendance(department);
   const tbody = document.getElementById('att-history-body');
 
   if (!hallticket) {
@@ -363,7 +375,7 @@ async function loadAttendanceHistory() {
 
   try {
     const query = new URLSearchParams({ hallticket, page: '1', limit: '30' });
-    if (department) query.set('department', department);
+    if (normalizedDepartment) query.set('department', normalizedDepartment);
     const res = await apiRequest(`/attendance/history?${query}`);
     const data = await res.json();
 
@@ -400,6 +412,7 @@ async function submitAttendanceForm() {
   clearAttendanceMessage();
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
   const department = document.getElementById('att-department').value;
+  const normalizedDepartment = normalizeDepartmentForAttendance(department);
   const subject = document.getElementById('att-subject').value;
   const date = document.getElementById('att-date').value;
   const status = getSelectedAttendanceStatus();
@@ -417,7 +430,7 @@ async function submitAttendanceForm() {
   try {
     const res = await apiRequest('/attendance/mark-attendance', {
       method: 'POST',
-      body: JSON.stringify({ hallticket, department, subject, date, status })
+      body: JSON.stringify({ hallticket, department: normalizedDepartment, subject, date, status })
     });
     const data = await res.json();
 
