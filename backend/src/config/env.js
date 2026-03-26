@@ -31,7 +31,10 @@ const env = {
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
   twilioFromNumber: process.env.TWILIO_FROM_NUMBER,
-  attendanceSmsEnabled: (process.env.ATTENDANCE_SMS_ENABLED || 'true') === 'true'
+  attendanceSmsEnabled: (process.env.ATTENDANCE_SMS_ENABLED || 'true') === 'true',
+  smsProvider: process.env.SMS_PROVIDER || 'auto',
+  fast2SmsApiKey: process.env.FAST2SMS_API_KEY,
+  fast2SmsSenderId: process.env.FAST2SMS_SENDER_ID || 'FSTSMS'
 };
 
 const required = {

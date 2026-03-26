@@ -17,6 +17,8 @@ const getTwilioClient = () => {
   return twilioClient;
 };
 
+const canUseFast2Sms = () => Boolean(env.fast2SmsApiKey);
+
 const normalizePhone = (phone) => {
   if (!phone) return '';
   const raw = String(phone).trim();
@@ -46,11 +48,6 @@ const sendAttendanceSms = async ({ studentName, status, subject, date, recipient
     return { skipped: true, reason: 'Attendance SMS disabled by env' };
   }
 
-  const client = getTwilioClient();
-  if (!client) {
-    return { skipped: true, reason: 'Twilio is not configured' };
-  }
-
   const uniqueRecipients = [...new Set(recipients.map(normalizePhone).filter(Boolean))];
   if (!uniqueRecipients.length) {
     return { skipped: true, reason: 'No valid recipient phone numbers found' };
@@ -62,21 +59,81 @@ const sendAttendanceSms = async ({ studentName, status, subject, date, recipient
   const sent = [];
   const failed = [];
 
-  await Promise.all(uniqueRecipients.map(async (to) => {
-    try {
-      const message = await client.messages.create({
-        body,
-        from: env.twilioFromNumber,
-        to
-      });
-      sent.push({ to, sid: message.sid });
-    } catch (error) {
-      failed.push({ to, message: error.message });
-      logger.warn('Failed to send attendance SMS', { to, error: error.message });
-    }
-  }));
+  const shouldUseTwilio = env.smsProvider === 'auto' || env.smsProvider === 'twilio';
+  const shouldUseFast2Sms = env.smsProvider === 'auto' || env.smsProvider === 'fast2sms';
 
-  return { skipped: false, sent, failed };
+  if (shouldUseTwilio) {
+    const client = getTwilioClient();
+    if (client) {
+      await Promise.all(uniqueRecipients.map(async (to) => {
+        try {
+          const message = await client.messages.create({
+            body,
+            from: env.twilioFromNumber,
+            to
+          });
+          sent.push({ to, sid: message.sid, provider: 'twilio' });
+        } catch (error) {
+          failed.push({ to, message: error.message, provider: 'twilio' });
+          logger.warn('Twilio send failed for attendance SMS', { to, error: error.message });
+        }
+      }));
+    }
+  }
+
+  if (shouldUseFast2Sms && failed.length > 0 && canUseFast2Sms()) {
+    const retryTargets = failed.splice(0, failed.length).map((row) => row.to);
+    const fast2SmsTargets = retryTargets
+      .map((target) => target.replace(/^\+/, ''))
+      .filter((target) => /^91\d{10}$/.test(target));
+
+    if (fast2SmsTargets.length) {
+      try {
+        const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+          method: 'POST',
+          headers: {
+            authorization: env.fast2SmsApiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            route: 'q',
+            sender_id: env.fast2SmsSenderId,
+            message: body,
+            language: 'english',
+            flash: 0,
+            numbers: fast2SmsTargets.join(',')
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && (data.return === true || data.request_id)) {
+          fast2SmsTargets.forEach((to) => sent.push({ to: `+${to}`, provider: 'fast2sms' }));
+        } else {
+          const message = data.message || `Fast2SMS error: ${response.status}`;
+          fast2SmsTargets.forEach((to) => failed.push({ to: `+${to}`, message, provider: 'fast2sms' }));
+        }
+      } catch (error) {
+        fast2SmsTargets.forEach((to) => failed.push({ to: `+${to}`, message: error.message, provider: 'fast2sms' }));
+      }
+    }
+
+    const unsupportedTargets = retryTargets.filter((target) => !/^\+91\d{10}$/.test(target));
+    unsupportedTargets.forEach((to) => failed.push({ to, message: 'Fast2SMS supports only Indian numbers', provider: 'fast2sms' }));
+  }
+
+  if (!sent.length && !failed.length) {
+    return {
+      skipped: true,
+      reason: 'No SMS provider configured. Set Twilio or Fast2SMS env variables.'
+    };
+  }
+
+  return {
+    skipped: false,
+    providerTried: env.smsProvider,
+    sent,
+    failed
+  };
 };
 
 module.exports = {

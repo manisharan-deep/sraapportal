@@ -272,6 +272,10 @@ async function loadAttendanceOptions() {
       subjectEl.appendChild(option);
     });
 
+    if (subjectEl.options.length > 1) {
+      subjectEl.selectedIndex = 1;
+    }
+
     attendanceState.optionsLoaded = true;
   } catch (error) {
     setAttendanceMessage(error.message || 'Unable to load attendance options', true);
@@ -280,15 +284,21 @@ async function loadAttendanceOptions() {
 
 async function refreshAttendanceSubjectsForStudent() {
   const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
-  const batch = document.getElementById('att-batch').value;
+  const batchEl = document.getElementById('att-batch');
+  const batch = batchEl.value;
   const subjectEl = document.getElementById('att-subject');
-  if (!hallticket || !batch) return;
+  if (!hallticket) return;
 
   try {
-    const query = new URLSearchParams({ hallticket, batch });
+    const query = new URLSearchParams({ hallticket });
+    if (batch) query.set('batch', batch);
     const res = await apiRequest(`/attendance/student-options?${query}`);
     const data = await res.json();
     if (!res.ok) return;
+
+    if (!batch && Array.isArray(data.students) && data.students.length === 1 && data.students[0].batch) {
+      batchEl.value = data.students[0].batch;
+    }
 
     const studentSubjects = (data.students && data.students[0] && Array.isArray(data.students[0].subjects))
       ? data.students[0].subjects
@@ -303,6 +313,10 @@ async function refreshAttendanceSubjectsForStudent() {
       option.textContent = subject;
       subjectEl.appendChild(option);
     });
+
+    if (subjectEl.options.length > 1) {
+      subjectEl.selectedIndex = 1;
+    }
   } catch (_error) {
     // Keep existing subject list if per-student fetch fails.
   }
@@ -315,8 +329,8 @@ async function loadAttendanceHistory() {
   const batch = document.getElementById('att-batch').value;
   const tbody = document.getElementById('att-history-body');
 
-  if (!hallticket || !batch) {
-    setAttendanceMessage('Enter hall ticket and select batch to load history', true);
+  if (!hallticket) {
+    setAttendanceMessage('Enter hall ticket to load history', true);
     return;
   }
 
@@ -324,7 +338,8 @@ async function loadAttendanceHistory() {
   tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#cce8ff;padding:20px;">Loading history...</td></tr>';
 
   try {
-    const query = new URLSearchParams({ hallticket, batch, page: '1', limit: '30' });
+    const query = new URLSearchParams({ hallticket, page: '1', limit: '30' });
+    if (batch) query.set('batch', batch);
     const res = await apiRequest(`/attendance/history?${query}`);
     const data = await res.json();
 
@@ -366,8 +381,8 @@ async function submitAttendanceForm() {
   const status = getSelectedAttendanceStatus();
   const submitBtn = document.getElementById('att-submit-btn');
 
-  if (!hallticket || !batch || !subject || !date) {
-    setAttendanceMessage('Hall ticket, batch, subject and date are required', true);
+  if (!hallticket || !subject || !date) {
+    setAttendanceMessage('Hall ticket, subject and date are required', true);
     return;
   }
 
@@ -387,7 +402,17 @@ async function submitAttendanceForm() {
       return;
     }
 
-    setAttendanceMessage(data.message || 'Attendance saved successfully');
+    const sms = data.sms || {};
+    let smsMessage = '';
+    if (sms.skipped) {
+      smsMessage = ` SMS: ${sms.reason || 'skipped'}`;
+    } else if (Array.isArray(sms.sent) || Array.isArray(sms.failed)) {
+      smsMessage = ` SMS sent: ${(sms.sent || []).length}, failed: ${(sms.failed || []).length}`;
+    } else if (typeof sms.sent === 'number' || typeof sms.failed === 'number') {
+      smsMessage = ` SMS sent: ${sms.sent || 0}, failed: ${sms.failed || 0}, skipped: ${sms.skipped || 0}`;
+    }
+
+    setAttendanceMessage(`${data.message || 'Attendance saved successfully'}.${smsMessage}`.trim());
     showToast('Attendance submitted successfully');
     await loadAttendanceHistory();
   } catch (_error) {
@@ -402,6 +427,7 @@ async function submitAttendanceForm() {
 document.getElementById('att-submit-btn')?.addEventListener('click', submitAttendanceForm);
 document.getElementById('att-history-btn')?.addEventListener('click', loadAttendanceHistory);
 document.getElementById('att-hallticket')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
+document.getElementById('att-hallticket')?.addEventListener('input', refreshAttendanceSubjectsForStudent);
 document.getElementById('att-batch')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -645,6 +671,7 @@ document.getElementById('modal-att-save').addEventListener('click', async () => 
   const date = document.getElementById('modal-att-date').value;
   const msg = document.getElementById('modal-att-msg');
   if (!date) { showToast('Select a date', 'error'); return; }
+  if (!courseId) { showToast('Select a subject/course', 'error'); return; }
 
   let subject = '';
   if (courseId) {
@@ -652,31 +679,35 @@ document.getElementById('modal-att-save').addEventListener('click', async () => 
     subject = (selectedOption && selectedOption.textContent) ? selectedOption.textContent : '';
   }
 
-  const studentBatch = (currentModalStudent.batch || '').trim() || `${currentModalStudent.branch || ''}-${currentModalStudent.section || ''}`.replace(/^-|-$/g, '');
+  const studentBatch = (currentModalStudent.batch || '').trim();
 
-  if (!currentModalStudent.rollNumber || !currentModalStudent.name || !studentBatch) {
-    showToast('Student profile is missing roll number or batch details', 'error');
+  if (!currentModalStudent.rollNumber || !currentModalStudent.name) {
+    showToast('Student profile is missing roll number or name', 'error');
     return;
   }
 
   msg.classList.add('hidden');
   try {
-    const res = await apiRequest('/attendance/mark', {
+    const res = await apiRequest('/attendance/mark-attendance', {
       method: 'POST',
       body: JSON.stringify({
+        hallticket: currentModalStudent.rollNumber,
         batch: studentBatch,
         subject,
         date,
-        records: [{
-          studentId: currentModalStudent._id,
-          hallTicketNumber: currentModalStudent.rollNumber,
-          studentName: currentModalStudent.name,
-          status: currentModalAttStatus
-        }]
+        status: currentModalAttStatus
       })
     });
     const data = await res.json();
-    msg.textContent = data.message || (res.ok ? 'Attendance saved!' : 'Error saving');
+    const sms = data.sms || {};
+    let smsStatus = '';
+    if (sms.skipped) {
+      smsStatus = ` SMS: ${sms.reason || 'skipped'}`;
+    } else if (Array.isArray(sms.sent) || Array.isArray(sms.failed)) {
+      smsStatus = ` SMS sent: ${(sms.sent || []).length}, failed: ${(sms.failed || []).length}`;
+    }
+
+    msg.textContent = `${data.message || (res.ok ? 'Attendance saved!' : 'Error saving')}.${smsStatus}`;
     msg.style.color = res.ok ? '#15803d' : '#dc2626';
     msg.classList.remove('hidden');
     if (res.ok) {
