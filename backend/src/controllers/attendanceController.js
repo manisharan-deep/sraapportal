@@ -2,6 +2,7 @@ const Attendance = require('../models/Attendance');
 const Staff = require('../models/Staff');
 const Student = require('../models/Student');
 const mongoose = require('mongoose');
+const { sendAttendanceSms } = require('../services/smsService');
 
 const normalizeDate = (dateInput) => {
   const dt = new Date(dateInput);
@@ -64,6 +65,42 @@ const recalculateStudentAttendancePercentages = async (studentIds = []) => {
         update: { $set: { attendancePercentage: percentByStudent.get(String(studentId)) ?? 0 } }
       }
     }))
+  );
+};
+
+const normalizeStatus = (value) => {
+  const status = String(value || '').trim().toLowerCase();
+  if (status === 'present') return 'Present';
+  if (status === 'absent') return 'Absent';
+  return null;
+};
+
+const sanitizeHallticket = (value) => String(value || '').trim().toUpperCase();
+
+const syncStudentAttendanceHistory = async ({ studentId, subject, date, status }) => {
+  await Student.updateOne(
+    { _id: studentId },
+    {
+      $pull: {
+        attendance: {
+          subject: String(subject).trim(),
+          date
+        }
+      }
+    }
+  );
+
+  await Student.updateOne(
+    { _id: studentId },
+    {
+      $addToSet: {
+        attendance: {
+          subject: String(subject).trim(),
+          date,
+          status
+        }
+      }
+    }
   );
 };
 
@@ -192,10 +229,199 @@ const markBulkAttendance = async (req, res) => {
   }
 
   await Attendance.bulkWrite(ops);
+
+  await Promise.all(
+    ops.map((op) => syncStudentAttendanceHistory({
+      studentId: op.updateOne.filter.studentId,
+      subject: op.updateOne.filter.subject,
+      date: op.updateOne.filter.date,
+      status: op.updateOne.update.$set.status
+    }))
+  );
+
   await recalculateStudentAttendancePercentages(ops.map((op) => op.updateOne.filter.studentId));
   return res.status(200).json({
     message: `Attendance saved for ${ops.length} student(s)`,
     updatedCount: ops.length
+  });
+};
+
+const markAttendance = async (req, res) => {
+  const { hallticket, batch, subject, status, date } = req.body;
+
+  const normalizedHallticket = sanitizeHallticket(hallticket);
+  const normalizedBatch = String(batch || '').trim();
+  const normalizedSubject = String(subject || '').trim();
+  const normalizedStatus = normalizeStatus(status);
+  const normalizedDate = normalizeDate(date || new Date());
+
+  if (!normalizedHallticket || !normalizedBatch || !normalizedSubject || !normalizedStatus || !normalizedDate) {
+    return res.status(400).json({
+      message: 'hallticket, batch, subject, status (Present/Absent), and a valid date are required'
+    });
+  }
+
+  const facultyId = await getStaffId(req.user._id);
+  if (!facultyId) {
+    return res.status(404).json({ message: 'Staff profile not found' });
+  }
+
+  const student = await Student.findOne({
+    batch: normalizedBatch,
+    $or: [
+      { hallticket: normalizedHallticket },
+      { rollNumber: normalizedHallticket }
+    ]
+  })
+    .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
+    .lean();
+
+  if (!student) {
+    return res.status(404).json({ message: 'Student not found for provided hallticket and batch' });
+  }
+
+  const alreadyExists = await Attendance.findOne({
+    studentId: student._id,
+    subject: normalizedSubject,
+    date: normalizedDate
+  })
+    .select('_id')
+    .lean();
+
+  if (alreadyExists) {
+    return res.status(409).json({
+      message: 'Attendance already marked for this subject and date'
+    });
+  }
+
+  const attendanceRecord = await Attendance.create({
+    studentId: student._id,
+    hallTicketNumber: student.rollNumber || student.hallticket || normalizedHallticket,
+    name: student.name,
+    studentName: student.name,
+    department: student.branch || 'GENERAL',
+    batch: student.batch || normalizedBatch,
+    semester: Number(student.semester || 1),
+    subject: normalizedSubject,
+    date: normalizedDate,
+    status: normalizedStatus,
+    facultyId,
+    markedBy: facultyId
+  });
+
+  await syncStudentAttendanceHistory({
+    studentId: student._id,
+    subject: normalizedSubject,
+    date: normalizedDate,
+    status: normalizedStatus
+  });
+
+  await recalculateStudentAttendancePercentages([student._id]);
+
+  const smsResult = await sendAttendanceSms({
+    studentName: student.name,
+    status: normalizedStatus,
+    subject: normalizedSubject,
+    date: normalizedDate,
+    recipients: [
+      student.studentPhone,
+      student.phone,
+      student.parentPhone,
+      student.fatherMobile,
+      student.motherMobile
+    ]
+  });
+
+  return res.status(201).json({
+    message: 'Attendance saved successfully',
+    attendance: attendanceRecord,
+    sms: smsResult
+  });
+};
+
+const getStudentAttendanceHistory = async (req, res) => {
+  const { hallticket, batch, subject, page = 1, limit = 20 } = req.query;
+  const normalizedHallticket = sanitizeHallticket(hallticket);
+  const normalizedBatch = String(batch || '').trim();
+
+  if (!normalizedHallticket || !normalizedBatch) {
+    return res.status(400).json({ message: 'hallticket and batch are required' });
+  }
+
+  const student = await Student.findOne({
+    batch: normalizedBatch,
+    $or: [
+      { hallticket: normalizedHallticket },
+      { rollNumber: normalizedHallticket }
+    ]
+  })
+    .select('_id name rollNumber hallticket batch')
+    .lean();
+
+  if (!student) {
+    return res.status(404).json({ message: 'Student not found for provided hallticket and batch' });
+  }
+
+  const query = { studentId: student._id };
+  if (subject) query.subject = String(subject).trim();
+
+  const safePage = toPositiveInt(page, 1);
+  const safeLimit = Math.min(toPositiveInt(limit, 20), 100);
+
+  const [total, history] = await Promise.all([
+    Attendance.countDocuments(query),
+    Attendance.find(query)
+      .select('subject date status batch hallTicketNumber createdAt')
+      .sort({ date: -1, createdAt: -1 })
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
+      .lean()
+  ]);
+
+  return res.json({
+    student: {
+      studentId: student._id,
+      name: student.name,
+      hallticket: student.hallticket || student.rollNumber,
+      batch: student.batch
+    },
+    attendance: history,
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit))
+    }
+  });
+};
+
+const getAttendanceStudentOptions = async (req, res) => {
+  const { batch, hallticket } = req.query;
+  const filter = {};
+  if (batch) filter.batch = String(batch).trim();
+  if (hallticket) {
+    const normalizedHallticket = sanitizeHallticket(hallticket);
+    filter.$or = [{ rollNumber: normalizedHallticket }, { hallticket: normalizedHallticket }];
+  }
+
+  const students = await Student.find(filter)
+    .select('name rollNumber hallticket batch subjects')
+    .sort({ rollNumber: 1 })
+    .limit(200)
+    .lean();
+
+  const batchOptions = [...new Set(students.map((s) => s.batch).filter(Boolean))].sort();
+  const subjectOptions = [...new Set(students.flatMap((s) => Array.isArray(s.subjects) ? s.subjects : []).filter(Boolean))].sort();
+
+  return res.json({
+    batches: batchOptions,
+    subjects: subjectOptions,
+    students: students.map((student) => ({
+      name: student.name,
+      hallticket: student.hallticket || student.rollNumber,
+      batch: student.batch,
+      subjects: Array.isArray(student.subjects) ? student.subjects : []
+    }))
   });
 };
 
@@ -371,7 +597,10 @@ const exportAttendance = async (req, res) => {
 
 module.exports = {
   listStudents,
+  markAttendance,
   markBulkAttendance,
+  getStudentAttendanceHistory,
+  getAttendanceStudentOptions,
   getAttendance,
   updateAttendance,
   getAttendancePercentage,

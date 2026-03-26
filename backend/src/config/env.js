@@ -27,7 +27,11 @@ const env = {
   whatsappApiKey: process.env.WHATSAPP_API_KEY,
   dailyAttendanceWhatsappEnabled: (process.env.DAILY_ATTENDANCE_WHATSAPP_ENABLED || 'true') === 'true',
   dailyAttendanceHour: Number(process.env.DAILY_ATTENDANCE_HOUR || 20),
-  dailyAttendanceMinute: Number(process.env.DAILY_ATTENDANCE_MINUTE || 0)
+  dailyAttendanceMinute: Number(process.env.DAILY_ATTENDANCE_MINUTE || 0),
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
+  twilioFromNumber: process.env.TWILIO_FROM_NUMBER,
+  attendanceSmsEnabled: (process.env.ATTENDANCE_SMS_ENABLED || 'true') === 'true'
 };
 
 const required = {

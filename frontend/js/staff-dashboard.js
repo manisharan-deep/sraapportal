@@ -103,6 +103,7 @@ function switchTab(name) {
   const activePanel = document.getElementById(`tab-${name}`);
   if (activePanel) activePanel.classList.add('in');
   if (name === 'students') loadAllStudents();
+  if (name === 'attendance') loadAttendanceOptions();
   if (name === 'announcements') loadRecentAnnouncements();
 }
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -123,6 +124,12 @@ let attMap = {};
 let currentModalStudent = null;
 let currentModalMarksCourses = [];
 let currentModalAttStatus = 'Present';
+
+const attendanceState = {
+  optionsLoaded: false,
+  submitting: false,
+  historyLoading: false
+};
 
 // ── Load dashboard overview ────────────────────────────────────────────────
 async function loadDashboard() {
@@ -215,6 +222,187 @@ async function loadStudentDropdowns() {
     });
   } catch (e) { /* silent */ }
 }
+
+function setAttendanceMessage(message, isError = false) {
+  const msg = document.getElementById('att-form-msg');
+  if (!msg) return;
+  msg.textContent = message;
+  msg.style.color = isError ? '#fecaca' : '#bbf7d0';
+  msg.classList.remove('hidden');
+}
+
+function clearAttendanceMessage() {
+  const msg = document.getElementById('att-form-msg');
+  if (!msg) return;
+  msg.classList.add('hidden');
+}
+
+function getSelectedAttendanceStatus() {
+  const selected = document.querySelector('input[name="att-status"]:checked');
+  return selected ? selected.value : 'Present';
+}
+
+async function loadAttendanceOptions() {
+  if (attendanceState.optionsLoaded) return;
+
+  const batchEl = document.getElementById('att-batch');
+  const subjectEl = document.getElementById('att-subject');
+  const dateEl = document.getElementById('att-date');
+
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+
+  try {
+    const res = await apiRequest('/attendance/student-options');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load attendance options');
+
+    batchEl.innerHTML = '<option value="">Select batch...</option>';
+    (data.batches || []).forEach((batch) => {
+      const option = document.createElement('option');
+      option.value = batch;
+      option.textContent = batch;
+      batchEl.appendChild(option);
+    });
+
+    subjectEl.innerHTML = '<option value="">Select subject...</option>';
+    (data.subjects || []).forEach((subject) => {
+      const option = document.createElement('option');
+      option.value = subject;
+      option.textContent = subject;
+      subjectEl.appendChild(option);
+    });
+
+    attendanceState.optionsLoaded = true;
+  } catch (error) {
+    setAttendanceMessage(error.message || 'Unable to load attendance options', true);
+  }
+}
+
+async function refreshAttendanceSubjectsForStudent() {
+  const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
+  const batch = document.getElementById('att-batch').value;
+  const subjectEl = document.getElementById('att-subject');
+  if (!hallticket || !batch) return;
+
+  try {
+    const query = new URLSearchParams({ hallticket, batch });
+    const res = await apiRequest(`/attendance/student-options?${query}`);
+    const data = await res.json();
+    if (!res.ok) return;
+
+    const studentSubjects = (data.students && data.students[0] && Array.isArray(data.students[0].subjects))
+      ? data.students[0].subjects
+      : [];
+    const fallbackSubjects = Array.isArray(data.subjects) ? data.subjects : [];
+    const finalSubjects = studentSubjects.length ? studentSubjects : fallbackSubjects;
+
+    subjectEl.innerHTML = '<option value="">Select subject...</option>';
+    finalSubjects.forEach((subject) => {
+      const option = document.createElement('option');
+      option.value = subject;
+      option.textContent = subject;
+      subjectEl.appendChild(option);
+    });
+  } catch (_error) {
+    // Keep existing subject list if per-student fetch fails.
+  }
+}
+
+async function loadAttendanceHistory() {
+  if (attendanceState.historyLoading) return;
+
+  const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
+  const batch = document.getElementById('att-batch').value;
+  const tbody = document.getElementById('att-history-body');
+
+  if (!hallticket || !batch) {
+    setAttendanceMessage('Enter hall ticket and select batch to load history', true);
+    return;
+  }
+
+  attendanceState.historyLoading = true;
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#cce8ff;padding:20px;">Loading history...</td></tr>';
+
+  try {
+    const query = new URLSearchParams({ hallticket, batch, page: '1', limit: '30' });
+    const res = await apiRequest(`/attendance/history?${query}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#fecaca;padding:20px;">${data.message || 'Failed to load attendance history'}</td></tr>`;
+      return;
+    }
+
+    const rows = data.attendance || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#cce8ff;padding:20px;">No attendance found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map((row) => {
+      const date = new Date(row.date).toLocaleDateString();
+      const badgeClass = String(row.status || '').toLowerCase() === 'present' ? 'badge-present' : 'badge-absent';
+      return `<tr>
+        <td>${date}</td>
+        <td>${row.subject || '-'}</td>
+        <td><span class="badge ${badgeClass}">${row.status || '-'}</span></td>
+      </tr>`;
+    }).join('');
+  } catch (_error) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#fecaca;padding:20px;">Network error while loading history</td></tr>';
+  } finally {
+    attendanceState.historyLoading = false;
+  }
+}
+
+async function submitAttendanceForm() {
+  if (attendanceState.submitting) return;
+
+  clearAttendanceMessage();
+  const hallticket = document.getElementById('att-hallticket').value.trim().toUpperCase();
+  const batch = document.getElementById('att-batch').value;
+  const subject = document.getElementById('att-subject').value;
+  const date = document.getElementById('att-date').value;
+  const status = getSelectedAttendanceStatus();
+  const submitBtn = document.getElementById('att-submit-btn');
+
+  if (!hallticket || !batch || !subject || !date) {
+    setAttendanceMessage('Hall ticket, batch, subject and date are required', true);
+    return;
+  }
+
+  attendanceState.submitting = true;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting...';
+
+  try {
+    const res = await apiRequest('/attendance/mark-attendance', {
+      method: 'POST',
+      body: JSON.stringify({ hallticket, batch, subject, date, status })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setAttendanceMessage(data.message || 'Failed to submit attendance', true);
+      return;
+    }
+
+    setAttendanceMessage(data.message || 'Attendance saved successfully');
+    showToast('Attendance submitted successfully');
+    await loadAttendanceHistory();
+  } catch (_error) {
+    setAttendanceMessage('Network error while submitting attendance', true);
+  } finally {
+    attendanceState.submitting = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Attendance';
+  }
+}
+
+document.getElementById('att-submit-btn')?.addEventListener('click', submitAttendanceForm);
+document.getElementById('att-history-btn')?.addEventListener('click', loadAttendanceHistory);
+document.getElementById('att-hallticket')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
+document.getElementById('att-batch')?.addEventListener('change', refreshAttendanceSubjectsForStudent);
 
 // ══════════════════════════════════════════════════════════════════════════
 // ALL STUDENTS TAB
@@ -737,4 +925,5 @@ document.getElementById('saveMarksBtn').addEventListener('click', async () => {
   await loadDashboard();
   loadFilters();
   loadStudentDropdowns();
+  loadAttendanceOptions();
 })();

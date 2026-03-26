@@ -6,6 +6,9 @@ const adminRoutes = require('./adminRoutes');
 const attendanceRoutes = require('./attendance');
 const marksRoutes = require('./marks');
 const subjectsRoutes = require('./subjects');
+const asyncHandler = require('../utils/asyncHandler');
+const attendanceController = require('../controllers/attendanceController');
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
@@ -20,5 +23,7 @@ router.use('/admin', adminRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/marks', marksRoutes);
 router.use('/subjects', subjectsRoutes);
+
+router.post('/mark-attendance', authenticate, authorize('STAFF'), asyncHandler(attendanceController.markAttendance));
 
 module.exports = router;

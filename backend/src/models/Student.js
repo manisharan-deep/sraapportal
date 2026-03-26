@@ -1,11 +1,18 @@
 const mongoose = require('mongoose');
 
+const attendanceEntrySchema = new mongoose.Schema({
+  subject: { type: String, required: true, trim: true },
+  date: { type: Date, required: true },
+  status: { type: String, enum: ['Present', 'Absent'], required: true }
+}, { _id: false });
+
 const studentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   
   // Basic Information
   name: { type: String, required: true },
   rollNumber: { type: String, required: true, unique: true },
+  hallticket: { type: String, default: '', trim: true, index: true },
   fatherName: { type: String, default: '' },
   motherName: { type: String, default: '' },
   dateOfBirth: { type: Date },
@@ -29,6 +36,8 @@ const studentSchema = new mongoose.Schema({
   // Contact Information (Student)
   email: { type: String, default: '' },
   phone: { type: String, default: '' },
+  studentPhone: { type: String, default: '' },
+  parentPhone: { type: String, default: '' },
   profilePhoto: { type: String, default: '' },
   
   // Contact Address
@@ -57,12 +66,14 @@ const studentSchema = new mongoose.Schema({
   semester: { type: Number, required: true },
   admissionYear: { type: Number },
   program: { type: String, default: 'BTECH' },
+  subjects: [{ type: String, trim: true }],
   
   // Performance Metrics
   cgpa: { type: Number, default: 0 },
   backlogs: { type: Number, default: 0 },
   attendancePercentage: { type: Number, default: 0 },
   coursesCount: { type: Number, default: 0 },
+  attendance: { type: [attendanceEntrySchema], default: [] },
   
   // Mentor Information
   mentor: { type: String, default: '' },

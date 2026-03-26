@@ -313,6 +313,27 @@
     .modal-att-btn.present-active { background: #16a34a; color: white; }
     .modal-att-btn.absent-active  { background: #dc2626; color: white; }
 
+    .attendance-status-row {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 10px 0 14px;
+    }
+
+    .attendance-radio {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #e6f5ff;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .attendance-radio input {
+      accent-color: #22c55e;
+    }
+
     #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; padding: 12px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
     #toast.toast-success { background: linear-gradient(135deg,#15803d,#16a34a); color: white; }
     #toast.toast-error   { background: linear-gradient(135deg,#b91c1c,#dc2626); color: white; }
@@ -368,6 +389,7 @@
   <div class="staff-tab-bar reveal">
     <button class="tab-btn active" data-tab="overview">Home</button>
     <button class="tab-btn" data-tab="students">All Students</button>
+    <button class="tab-btn" data-tab="attendance">Attendance</button>
     <button class="tab-btn" data-tab="announcements">Announcements</button>
     <button class="tab-btn" data-tab="files">Upload Files</button>
     <button class="tab-btn" data-tab="coins">Assign Coins</button>
@@ -484,6 +506,72 @@
       <div class="table-container" style="flex:1; min-width:280px;">
         <div class="table-header">Recent Announcements</div>
         <div id="annList" style="padding:16px; font-size:14px; color:#4b5563;">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel hidden reveal" id="tab-attendance">
+    <div class="section-card" style="max-width:920px;">
+      <h2>Mark Attendance and Notify</h2>
+      <div class="form-grid-4" style="margin-bottom:10px;">
+        <div class="form-group" style="margin:0;">
+          <label>Hall Ticket Number</label>
+          <input id="att-hallticket" type="text" class="form-control" placeholder="e.g. 23R11A05A1">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Batch</label>
+          <select id="att-batch" class="form-control">
+            <option value="">Select batch...</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Subject</label>
+          <select id="att-subject" class="form-control">
+            <option value="">Select subject...</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Date</label>
+          <input id="att-date" type="date" class="form-control">
+        </div>
+      </div>
+
+      <div class="attendance-status-row">
+        <span style="font-size:13px;font-weight:700;color:#d8ecff;">Status</span>
+        <label class="attendance-radio">
+          <input type="radio" name="att-status" value="Present" checked>
+          <span>Present</span>
+        </label>
+        <label class="attendance-radio">
+          <input type="radio" name="att-status" value="Absent">
+          <span>Absent</span>
+        </label>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button id="att-submit-btn" class="btn-primary">Submit Attendance</button>
+        <button id="att-history-btn" class="btn-primary" type="button" style="background:linear-gradient(135deg,#0f766e,#0d9488);">Load History</button>
+      </div>
+      <p id="att-form-msg" class="hidden" style="margin-top:10px;font-size:13px;"></p>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">Attendance History</div>
+      <div style="overflow-x:auto;">
+        <table class="staff-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Subject</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="att-history-body">
+            <tr>
+              <td colspan="3" style="text-align:center;color:#cce8ff;padding:20px;">Enter hall ticket and batch to view history</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
