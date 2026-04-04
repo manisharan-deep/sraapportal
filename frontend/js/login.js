@@ -18,6 +18,8 @@
   const usernameField = document.getElementById('usernameField');
   const enrollmentInput = document.getElementById('enrollmentNumber');
   const usernameInput = document.getElementById('username');
+  const fullNameInput = document.getElementById('fullName');
+  const fullNameRegex = /^[A-Za-z\s.'-]+$/;
 
   const captchaCanvas = document.getElementById('captchaCanvas');
   const refreshCaptchaBtn = document.getElementById('refreshCaptcha');
@@ -52,6 +54,15 @@
     errorAlert.classList.remove('show');
     successAlert.textContent = message;
     successAlert.classList.add('show');
+  }
+
+  if (fullNameInput) {
+    fullNameInput.addEventListener('input', () => {
+      const sanitized = fullNameInput.value.replaceAll(/[^A-Za-z\s.'-]/g, '');
+      if (sanitized !== fullNameInput.value) {
+        fullNameInput.value = sanitized;
+      }
+    });
   }
 
   function setAuthTab(tabName) {
@@ -310,8 +321,14 @@
     }
 
     const role = registerRoleInput.value;
+    const fullName = document.getElementById('fullName').value.trim();
+    if (!fullNameRegex.test(fullName)) {
+      showError('Full Name should contain only alphabets.');
+      return;
+    }
+
     const payload = {
-      fullName: document.getElementById('fullName').value.trim(),
+      fullName,
       email: document.getElementById('email').value.trim(),
       role,
       password

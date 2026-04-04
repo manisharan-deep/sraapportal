@@ -3,11 +3,22 @@ const enrollmentGroup = document.getElementById('enrollmentGroup');
 const usernameGroup = document.getElementById('usernameGroup');
 const enrollmentInput = document.getElementById('enrollmentNumber');
 const usernameInput = document.getElementById('username');
+const fullNameInput = document.getElementById('fullName');
 const passwordInput = document.getElementById('password');
 const confirmPasswordInput = document.getElementById('confirmPassword');
 const suggestPasswordBtn = document.getElementById('suggestPasswordBtn');
 const suggestedPasswordText = document.getElementById('suggestedPasswordText');
 const passwordStrength = document.getElementById('passwordStrength');
+const fullNameRegex = /^[A-Za-z\s.'-]+$/;
+
+if (fullNameInput) {
+  fullNameInput.addEventListener('input', () => {
+    const sanitized = fullNameInput.value.replaceAll(/[^A-Za-z\s.'-]/g, '');
+    if (sanitized !== fullNameInput.value) {
+      fullNameInput.value = sanitized;
+    }
+  });
+}
 
 function generateStrongPassword(length = 14) {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -113,8 +124,15 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   }
 
   const role = roleSelect.value;
+  const fullName = document.getElementById('fullName').value.trim();
+  if (!fullNameRegex.test(fullName)) {
+    errorAlert.textContent = 'Full Name should contain only alphabets.';
+    errorAlert.classList.remove('d-none');
+    return;
+  }
+
   const data = {
-    fullName: document.getElementById('fullName').value,
+    fullName,
     email: document.getElementById('email').value,
     role: role,
     password: password

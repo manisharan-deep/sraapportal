@@ -17,6 +17,8 @@ const { sendWhatsAppMessage } = require('../services/whatsappService');
 
 const isPresentStatus = (value) => String(value || '').toLowerCase() === 'present';
 const toIsoDate = (value) => new Date(value).toISOString().slice(0, 10);
+const alphabetOnlyRegex = /^[A-Za-z\s.'-]+$/;
+const mobileRegex = /^\d{10}$/;
 
 const dashboard = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id }).lean();
@@ -373,10 +375,54 @@ const updateProfile = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Student profile not found' });
   }
 
+  const alphabetOnlyFields = [
+    ['name', 'Student Name'],
+    ['fatherName', 'Father Name'],
+    ['motherName', 'Mother Name'],
+    ['fatherOccupation', 'Father Occupation'],
+    ['motherOccupation', 'Mother Occupation']
+  ];
+
+  for (const [key, label] of alphabetOnlyFields) {
+    if (req.body[key] === undefined || req.body[key] === null || req.body[key] === '') {
+      continue;
+    }
+
+    const value = String(req.body[key]).trim();
+    if (!alphabetOnlyRegex.test(value)) {
+      return res.status(400).json({ message: `${label} should contain only alphabets` });
+    }
+    req.body[key] = value;
+  }
+
+  const phoneFields = [
+    ['phone', 'Student Mobile Number'],
+    ['fatherMobile', 'Father Mobile Number'],
+    ['motherMobile', 'Mother Mobile Number'],
+    ['alternatePhone', 'Alternate Mobile Number'],
+    ['emergencyContact', 'Emergency Contact Number']
+  ];
+
+  for (const [key, label] of phoneFields) {
+    if (req.body[key] === undefined || req.body[key] === null || req.body[key] === '') {
+      continue;
+    }
+
+    const value = String(req.body[key]).replaceAll(/\D/g, '');
+    if (!mobileRegex.test(value)) {
+      return res.status(400).json({ message: `${label} must be exactly 10 digits` });
+    }
+    req.body[key] = value;
+  }
+
   const updateData = {
     name: req.body.name,
     fatherName: req.body.fatherName,
+    fatherOccupation: req.body.fatherOccupation,
+    fatherMobile: req.body.fatherMobile,
     motherName: req.body.motherName,
+    motherOccupation: req.body.motherOccupation,
+    motherMobile: req.body.motherMobile,
     dateOfBirth: req.body.dateOfBirth,
     gender: req.body.gender,
     bloodGroup: req.body.bloodGroup,

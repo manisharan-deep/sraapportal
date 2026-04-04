@@ -5,9 +5,15 @@ const jwt = require('jsonwebtoken');
 const asyncHandler = require('../utils/asyncHandler');
 const { signAccessToken, signRefreshToken } = require('../utils/tokens');
 const env = require('../config/env');
+const fullNameRegex = /^[A-Za-z\s.'-]+$/;
 
 const register = asyncHandler(async (req, res) => {
   const { fullName, email, role, password, enrollmentNumber, username } = req.body;
+  const fullNameTrimmed = String(fullName || '').trim();
+
+  if (!fullNameRegex.test(fullNameTrimmed)) {
+    return res.status(400).json({ message: 'Full Name should contain only alphabets' });
+  }
 
   // Check for an existing user. If one exists but has no profile (orphaned from
   // a previous failed registration), clean it up so the user can re-register.
@@ -40,7 +46,7 @@ const register = asyncHandler(async (req, res) => {
   }
 
   const user = await User.create({
-    fullName,
+    fullName: fullNameTrimmed,
     email,
     role,
     password,
@@ -52,7 +58,7 @@ const register = asyncHandler(async (req, res) => {
     if (role === 'STUDENT') {
       await Student.create({
         userId: user._id,
-        name: fullName,
+        name: fullNameTrimmed,
         rollNumber: enrollmentNumber,
         branch: 'Not Set',
         section: 'Not Set',

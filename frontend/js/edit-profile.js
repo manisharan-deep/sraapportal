@@ -11,6 +11,40 @@ const profilePhotoDisplay = document.getElementById('profilePhotoDisplay');
 const PROFILE_PHOTO_KEY = 'studentProfilePhoto';
 let profilePhotoData = '';
 
+const alphabetOnlyRegex = /^[A-Za-z\s.'-]*$/;
+const mobileRegex = /^\d{10}$/;
+
+const sanitizeAlphabetInput = (value) => String(value || '').replaceAll(/[^A-Za-z\s.'-]/g, '');
+const sanitizeNumericInput = (value) => String(value || '').replaceAll(/\D/g, '').slice(0, 10);
+
+function bindAlphabetOnlyInput(fieldIds) {
+  fieldIds.forEach((id) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    element.addEventListener('input', () => {
+      const sanitized = sanitizeAlphabetInput(element.value);
+      if (element.value !== sanitized) {
+        element.value = sanitized;
+      }
+    });
+  });
+}
+
+function bindNumericOnlyInput(fieldIds) {
+  fieldIds.forEach((id) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    element.addEventListener('input', () => {
+      const sanitized = sanitizeNumericInput(element.value);
+      if (element.value !== sanitized) {
+        element.value = sanitized;
+      }
+    });
+  });
+}
+
 function renderProfilePhoto(photoData) {
   if (!profilePhotoDisplay) return;
   if (photoData) {
@@ -24,7 +58,7 @@ function renderProfilePhoto(photoData) {
 
 if (profilePhotoInput) {
   profilePhotoInput.addEventListener('change', (event) => {
-    const file = event.target.files && event.target.files[0];
+    const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       showError('Please select a valid image file.');
@@ -40,6 +74,9 @@ if (profilePhotoInput) {
     reader.readAsDataURL(file);
   });
 }
+
+bindAlphabetOnlyInput(['name', 'fatherName', 'motherName', 'fatherOccupation', 'motherOccupation']);
+bindNumericOnlyInput(['phone', 'fatherMobile', 'motherMobile']);
 
 // Load existing profile data
 async function loadProfile() {
@@ -228,6 +265,38 @@ profileForm.addEventListener('submit', async (e) => {
     interMedium: document.getElementById('interMedium').value.trim(),
     interPassType: document.getElementById('interPassType').value.trim()
   };
+
+  const alphabetOnlyFields = [
+    { key: 'name', label: 'Student Name' },
+    { key: 'fatherName', label: 'Father Name' },
+    { key: 'motherName', label: 'Mother Name' },
+    { key: 'fatherOccupation', label: 'Father Occupation' },
+    { key: 'motherOccupation', label: 'Mother Occupation' }
+  ];
+
+  for (const field of alphabetOnlyFields) {
+    const value = String(formData[field.key] || '').trim();
+    if (value && !alphabetOnlyRegex.test(value)) {
+      showError(`${field.label} should contain only alphabets.`);
+      return;
+    }
+    formData[field.key] = sanitizeAlphabetInput(value);
+  }
+
+  const phoneFields = [
+    { key: 'phone', label: 'Student Mobile Number' },
+    { key: 'fatherMobile', label: 'Father Mobile Number' },
+    { key: 'motherMobile', label: 'Mother Mobile Number' }
+  ];
+
+  for (const field of phoneFields) {
+    const value = sanitizeNumericInput(formData[field.key]);
+    if (value && !mobileRegex.test(value)) {
+      showError(`${field.label} must be exactly 10 digits.`);
+      return;
+    }
+    formData[field.key] = value;
+  }
   
   try {
     const response = await apiRequest('/student/profile', {

@@ -284,7 +284,7 @@
             </div>
             <div class="form-group">
               <label for="name">Student Name (as per SSC) *</label>
-              <input type="text" id="name" required>
+              <input type="text" id="name" required pattern="[A-Za-z\s.'-]+" title="Use alphabets only">
             </div>
             <div class="form-group">
               <label for="program">Degree</label>
@@ -352,30 +352,30 @@
           <div class="form-grid">
           <div class="form-group">
             <label for="fatherName">Father Name</label>
-            <input type="text" id="fatherName">
+            <input type="text" id="fatherName" pattern="[A-Za-z\s.'-]+" title="Use alphabets only">
                       <div class="form-group">
                         <label for="fatherOccupation">Father Occupation</label>
-                        <input type="text" id="fatherOccupation">
+                        <input type="text" id="fatherOccupation" pattern="[A-Za-z\s.'-]+" title="Use alphabets only">
                       </div>
                       <div class="form-group">
                         <label for="fatherMobile">Father Mobile Number</label>
-                        <input type="tel" id="fatherMobile">
+                        <input type="tel" id="fatherMobile" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter 10 digits">
                       </div>
           </div>
           <div class="form-group">
             <label for="motherName">Mother Name</label>
-            <input type="text" id="motherName">
+            <input type="text" id="motherName" pattern="[A-Za-z\s.'-]+" title="Use alphabets only">
                       <div class="form-group">
                         <label for="motherOccupation">Mother Occupation</label>
-                        <input type="text" id="motherOccupation">
+                        <input type="text" id="motherOccupation" pattern="[A-Za-z\s.'-]+" title="Use alphabets only">
                       </div>
                       <div class="form-group">
                         <label for="motherMobile">Mother Mobile Number</label>
-                        <input type="tel" id="motherMobile">
+                        <input type="tel" id="motherMobile" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter 10 digits">
                       </div>
                       <div class="form-group">
                         <label for="phone">Student Mobile Number</label>
-                        <input type="tel" id="phone" placeholder="10-digit mobile number">
+                        <input type="tel" id="phone" placeholder="10-digit mobile number" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter 10 digits">
                       </div>
                       <div class="form-group">
                         <label for="email">Student Email</label>
