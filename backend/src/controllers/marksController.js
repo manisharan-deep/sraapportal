@@ -1,38 +1,45 @@
 const Marks = require('../models/Marks');
 const Staff = require('../models/Staff');
 const Student = require('../models/Student');
+const Course = require('../models/Course');
+const { normalizeMarks, calculateCgpa } = require('../utils/academic');
 
 const toPositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const csvEscape = (value) => `"${String(value ?? '').split('"').join('""')}"`;
 
 const getStaffId = async (userId) => {
   const staff = await Staff.findOne({ userId }).select('_id').lean();
   return staff ? staff._id : null;
 };
 
-const calculateGrade = (totalMarks) => {
-  if (totalMarks >= 85) return 'A';
-  if (totalMarks >= 70) return 'B';
-  if (totalMarks >= 55) return 'C';
-  return 'Fail';
+const uniqueValues = (values = []) => [...new Set(values.filter(Boolean))];
+
+const buildCreditsLookup = (courses = []) => {
+  const lookup = new Map();
+
+  courses.forEach((course) => {
+    const credits = Number(course.credits || 0);
+    if (course.code) lookup.set(String(course.code).toLowerCase(), credits);
+    if (course.name) lookup.set(String(course.name).toLowerCase(), credits);
+  });
+
+  return lookup;
 };
 
-const normalizeMarks = ({ internalMarks = 0, externalMarks = 0, assignmentMarks = 0 }) => {
-  const internal = Number(internalMarks) || 0;
-  const external = Number(externalMarks) || 0;
-  const assignment = Number(assignmentMarks) || 0;
-  const total = internal + external + assignment;
-  return {
-    internalMarks: internal,
-    externalMarks: external,
-    assignmentMarks: assignment,
-    totalMarks: total,
-    grade: calculateGrade(total)
-  };
+const recalculateStudentSemesterCgpa = async (studentId, semester) => {
+  const [marksRows, courses] = await Promise.all([
+    Marks.find({ studentId, semester }).lean(),
+    Course.find({ semester }).select('code name credits').lean()
+  ]);
+
+  const cgpa = calculateCgpa(marksRows, buildCreditsLookup(courses));
+  await Marks.updateMany({ studentId, semester }, { $set: { cgpa } });
+  await Student.updateOne({ _id: studentId }, { $set: { cgpa } });
+  return cgpa;
 };
 
 const addMarks = async (req, res) => {
@@ -51,7 +58,7 @@ const addMarks = async (req, res) => {
   if (!facultyId) return res.status(404).json({ message: 'Staff profile not found' });
 
   const ops = records
-    .filter((r) => r && r.studentId && r.hallTicketNumber)
+    .filter((r) => r?.studentId && r?.hallTicketNumber)
     .map((record) => {
       const computed = normalizeMarks(record);
       return {
@@ -86,6 +93,13 @@ const addMarks = async (req, res) => {
   }
 
   await Marks.bulkWrite(ops);
+  const studentSemesterPairs = uniqueValues(records.map((record) => `${record.studentId}:${Number(semester)}`));
+  await Promise.all(
+    studentSemesterPairs.map(async (pair) => {
+      const [studentIdValue, semesterValue] = pair.split(':');
+      await recalculateStudentSemesterCgpa(studentIdValue, Number(semesterValue));
+    })
+  );
   return res.status(200).json({ message: `Marks saved for ${ops.length} student(s)` });
 };
 
@@ -161,7 +175,69 @@ const updateMarks = async (req, res) => {
   ).lean();
 
   if (!updated) return res.status(404).json({ message: 'Marks record not found' });
+
+  await recalculateStudentSemesterCgpa(updated.studentId, updated.semester);
   return res.json({ message: 'Marks updated successfully', marks: updated });
+};
+
+const getStudentMarks = async (req, res) => {
+  const { semester } = req.query;
+  const filter = { studentId: req.params.studentId };
+  if (semester) filter.semester = Number(semester);
+
+  const [marks, student, semesters] = await Promise.all([
+    Marks.find(filter).sort({ semester: 1, subject: 1 }).lean(),
+    Student.findById(req.params.studentId).select('_id name cgpa').lean(),
+    Marks.distinct('semester', { studentId: req.params.studentId })
+  ]);
+
+  const sortedSemesters = semesters.toSorted((a, b) => a - b);
+  const cgpaSummary = await Promise.all(
+    sortedSemesters.map(async (sem) => {
+      const semMarks = await Marks.find({ studentId: req.params.studentId, semester: sem }).lean();
+      const courses = await Course.find({ semester: sem }).select('code name credits').lean();
+      return {
+        semester: sem,
+        cgpa: calculateCgpa(semMarks, buildCreditsLookup(courses))
+      };
+    })
+  );
+
+  return res.json({
+    student,
+    marks,
+    cgpaSummary,
+    overallCgpa: Number(student?.cgpa || 0)
+  });
+};
+
+const getCgpa = async (req, res) => {
+  const { studentId } = req.params;
+  const { semester } = req.query;
+
+  const student = await Student.findById(studentId).select('_id name cgpa branch semester').lean();
+  if (!student) {
+    return res.status(404).json({ message: 'Student not found' });
+  }
+
+  const semesters = semester ? [Number(semester)] : uniqueValues(await Marks.distinct('semester', { studentId }));
+  const sortedSemesters = semesters.toSorted((a, b) => a - b);
+  const summaries = await Promise.all(
+    sortedSemesters.map(async (sem) => {
+      const semMarks = await Marks.find({ studentId, semester: sem }).lean();
+      const courses = await Course.find({ semester: sem }).select('code name credits').lean();
+      return {
+        semester: sem,
+        cgpa: calculateCgpa(semMarks, buildCreditsLookup(courses))
+      };
+    })
+  );
+
+  return res.json({
+    student,
+    cgpaSummary: summaries,
+    overallCgpa: Number(student.cgpa || 0)
+  });
 };
 
 const exportMarks = async (req, res) => {
@@ -253,6 +329,8 @@ module.exports = {
   addMarks,
   getMarks,
   updateMarks,
+  getStudentMarks,
+  getCgpa,
   exportMarks,
   getStudentsForMarks
 };

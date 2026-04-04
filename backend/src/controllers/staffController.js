@@ -15,6 +15,27 @@ const dashboard = asyncHandler(async (req, res) => {
     .lean();
   if (!staff) return res.status(404).json({ message: 'Staff profile not found' });
 
+  const assignedCourses = await Course.find({ facultyId: staff._id })
+    .select('_id code name branch semester credits facultyId')
+    .sort({ semester: 1, code: 1 })
+    .lean();
+
+  const assignedSubjectDetails = await Promise.all(
+    assignedCourses.map(async (course) => {
+      const studentCount = await Student.countDocuments({ branch: course.branch, semester: course.semester });
+      return {
+        courseId: course._id,
+        subjectCode: course.code,
+        subjectName: course.name,
+        branch: course.branch,
+        semester: course.semester,
+        credits: course.credits,
+        batchLabel: `${course.branch}-S${course.semester}`,
+        studentCount
+      };
+    })
+  );
+
   const [recentAttendance, recentAnnouncements, recentCoins, totalStudents] = await Promise.all([
     Attendance.find({ markedBy: staff._id }).sort({ createdAt: -1 }).limit(5)
       .populate('studentId', 'name rollNumber').lean(),
@@ -24,7 +45,14 @@ const dashboard = asyncHandler(async (req, res) => {
     Student.countDocuments()
   ]);
 
-  return res.json({ staff, recentAttendance, recentAnnouncements, recentCoins, totalStudents });
+  return res.json({
+    staff,
+    assignedCourses: assignedSubjectDetails,
+    recentAttendance,
+    recentAnnouncements,
+    recentCoins,
+    totalStudents
+  });
 });
 
 // ── List all students with optional filters ─────────────────────────────────
@@ -84,8 +112,8 @@ const getFilters = asyncHandler(async (req, res) => {
     Student.distinct('semester')
   ]);
   return res.json({
-    branches: branches.filter(Boolean).sort(),
-    sections: sections.filter(Boolean).sort(),
+    branches: branches.filter(Boolean).sort((a, b) => String(a).localeCompare(String(b))),
+    sections: sections.filter(Boolean).sort((a, b) => String(a).localeCompare(String(b))),
     semesters: semesters.filter(Boolean).sort((a, b) => a - b)
   });
 });

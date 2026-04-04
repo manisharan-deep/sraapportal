@@ -1,4 +1,4 @@
-const path = require('path');
+const path = require('node:path');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -17,14 +17,16 @@ const logger = require('./utils/logger');
 const app = express();
 
 app.use(helmet());
-const allowedOrigins = (env.corsOrigin || '*')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = new Set(
+  (env.corsOrigin || '*')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
 
 app.use(cors({ 
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.has('*') || allowedOrigins.has(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -39,6 +41,14 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(hpp());
 app.use(apiLimiter);
+
+app.use(express.static(path.join(__dirname, '../../frontend-react/dist'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 // Disable caching for HTML files so role-switching on login page always works
 app.use(express.static(path.join(__dirname, '../../frontend'), {

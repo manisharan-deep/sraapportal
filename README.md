@@ -5,6 +5,7 @@ Production-grade university portal using Node.js + Express MVC + EJS SSR with co
 ## Tech Stack
 
 - Frontend: EJS, Bootstrap 5, Animate.css, Vanilla JS
+- React frontend: Vite + React + Tailwind CSS in `frontend-react/`
 - Backend: Node.js, Express.js (MVC)
 - Database: MongoDB (Mongoose)
 - Cache: Redis
@@ -23,6 +24,9 @@ Production-grade university portal using Node.js + Express MVC + EJS SSR with co
   - tests/{unit,integration}
   - package.json
   - Dockerfile
+- frontend-react
+  - Vite + React + Tailwind app for teacher, student, and admin portals
+  - src/{components,context,lib,pages,styles}
 - infrastructure
   - docker/
   - kubernetes/{backend-deployment.yaml,backend-service.yaml,ingress.yaml,configmap.yaml,secret.yaml,hpa.yaml}
@@ -41,6 +45,27 @@ Production-grade university portal using Node.js + Express MVC + EJS SSR with co
    - App: http://localhost:3000
    - Health: http://localhost:3000/health
    - Metrics: http://localhost:3000/metrics
+
+## React Frontend
+
+1. Install dependencies:
+  - `cd frontend-react`
+  - `npm install`
+2. Start the dev server:
+  - `npm run dev`
+3. The Vite dev server proxies API requests to `http://localhost:3000`.
+4. Build output is served from `frontend-react/dist` when deployed behind Express.
+
+## Sample Seed Data
+
+1. Set a password before running the seed script:
+  - `SEED_PORTAL_PASSWORD=YourStrongPassword123!`
+2. Seed admin, teacher, student, course, attendance, and marks demo records:
+  - `node backend/scripts/seedUniversityPortal.js`
+3. Demo login identifiers:
+  - Admin email: `admin@university.local`
+  - Teacher email: `teacher@university.local`
+  - Student email: `student@university.local`
 
 ## Authentication
 

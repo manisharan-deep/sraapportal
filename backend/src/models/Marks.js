@@ -10,7 +10,8 @@ const marksSchema = new mongoose.Schema({
   externalMarks: { type: Number, default: 0, min: 0, max: 60 },
   assignmentMarks: { type: Number, default: 0, min: 0, max: 20 },
   totalMarks: { type: Number, default: 0, min: 0, max: 120 },
-  grade: { type: String, enum: ['A', 'B', 'C', 'Fail'], default: 'Fail' },
+  grade: { type: String, enum: ['O', 'A+', 'A', 'B+', 'B', 'C', 'Fail'], default: 'Fail' },
+  cgpa: { type: Number, default: 0 },
   facultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff', required: true, index: true }
 }, { timestamps: true });
 
