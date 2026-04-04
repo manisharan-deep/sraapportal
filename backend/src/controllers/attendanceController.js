@@ -80,6 +80,19 @@ const normalizeStatus = (value) => {
 
 const sanitizeHallticket = (value) => String(value || '').trim().toUpperCase();
 
+const normalizeNonEmptyString = (value, fallback = '') => {
+  const normalized = String(value || '').trim();
+  return normalized || fallback;
+};
+
+const normalizeSemester = (value, fallback = 1) => {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed)) return fallback;
+  if (parsed < 1) return 1;
+  if (parsed > 8) return 8;
+  return parsed;
+};
+
 const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const buildDepartmentFilter = (department) => {
@@ -429,16 +442,31 @@ const markAttendance = async (req, res) => {
     });
   }
 
+  const hallTicketNumber = normalizeNonEmptyString(
+    student.rollNumber || student.hallticket || normalizedHallticket,
+    normalizedHallticket
+  );
+  const studentName = normalizeNonEmptyString(student.name, 'Student');
+  const attendanceDepartment = normalizeNonEmptyString(student.branch || normalizedDepartment, 'GENERAL');
+  const attendanceBatch = normalizeNonEmptyString(student.batch || normalizedBatch, 'UNASSIGNED');
+  const attendanceSemester = normalizeSemester(student.semester, 1);
+
+  if (!hallTicketNumber) {
+    return res.status(400).json({
+      message: 'Hall ticket number is required to mark attendance for this student'
+    });
+  }
+
   let attendanceRecord;
   try {
     attendanceRecord = await Attendance.create({
       studentId: student._id,
-      hallTicketNumber: student.rollNumber || student.hallticket || normalizedHallticket,
-      name: student.name,
-      studentName: student.name,
-      department: student.branch || normalizedDepartment || 'GENERAL',
-      batch: student.batch || normalizedBatch || '',
-      semester: Number(student.semester || 1),
+      hallTicketNumber,
+      name: studentName,
+      studentName,
+      department: attendanceDepartment,
+      batch: attendanceBatch,
+      semester: attendanceSemester,
       subject: normalizedSubject,
       date: normalizedDate,
       status: normalizedStatus,
