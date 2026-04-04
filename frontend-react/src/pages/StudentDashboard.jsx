@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { apiRequest, getUser } from '../lib/api';
+import { apiRequest } from '../lib/api';
 import StatCard from '../components/StatCard';
 import DataTable from '../components/DataTable';
 
@@ -13,20 +13,15 @@ export default function StudentDashboard() {
       const response = await apiRequest('/student/dashboard');
       const result = await response.json();
       setSummary(result);
-      const studentId = result.student?._id;
-      if (studentId) {
-        const marksResponse = await apiRequest(`/marks/student/${studentId}`);
-        const marksResult = await marksResponse.json();
-        setMarks(marksResult.marks || []);
-        setCgpaSummary(marksResult.cgpaSummary || []);
-      }
+      setMarks(result.marks || []);
+      setCgpaSummary(result.cgpaSummary || []);
     })();
   }, []);
 
   const student = summary?.student;
   const dashboardStats = useMemo(() => [
     { label: 'Attendance %', value: `${Number(student?.attendancePercentage || 0).toFixed(2)}%`, hint: 'Auto-calculated from attendance records', tone: 'cyan' },
-    { label: 'CGPA', value: Number(student?.cgpa || 0).toFixed(2), hint: 'Stored on the student profile', tone: 'emerald' },
+    { label: 'CGPA', value: Number(student?.cgpa || summary?.overallCgpa || 0).toFixed(2), hint: 'Stored on the student profile', tone: 'emerald' },
     { label: 'Batch', value: `${student?.branch || '—'} · ${student?.semester || '—'}`, hint: 'Current academic cohort', tone: 'amber' }
   ], [student]);
 
@@ -67,7 +62,7 @@ export default function StudentDashboard() {
               <p className="mt-2 text-2xl font-semibold text-slate-950">{Number(item.cgpa || 0).toFixed(2)}</p>
             </div>
           ))}
-          {!cgpaSummary.length ? <p className="text-sm text-slate-500">No CGPA data yet.</p> : null}
+          {cgpaSummary.length > 0 ? null : <p className="text-sm text-slate-500">No CGPA data yet.</p>}
         </div>
       </section>
     </div>

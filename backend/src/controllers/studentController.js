@@ -2,6 +2,7 @@ const Student = require('../models/Student');
 const Attendance = require('../models/Attendance');
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
+const Marks = require('../models/Marks');
 const Result = require('../models/Result');
 const Fee = require('../models/Fee');
 const Feedback = require('../models/Feedback');
@@ -11,6 +12,7 @@ const ExamSchedule = require('../models/ExamSchedule');
 const HallTicket = require('../models/HallTicket');
 const asyncHandler = require('../utils/asyncHandler');
 const { classesRequiredFor75 } = require('../utils/attendance');
+const { calculateCgpa } = require('../utils/academic');
 const { generateAttendancePdf } = require('../services/pdfService');
 const { sendEmail } = require('../services/emailService');
 const { sendWhatsAppMessage } = require('../services/whatsappService');
@@ -19,6 +21,16 @@ const isPresentStatus = (value) => String(value || '').toLowerCase() === 'presen
 const toIsoDate = (value) => new Date(value).toISOString().slice(0, 10);
 const alphabetOnlyRegex = /^[A-Za-z\s.'-]+$/;
 const mobileRegex = /^\d{10}$/;
+
+const buildCreditsLookup = (courses = []) => {
+  const lookup = new Map();
+  courses.forEach((course) => {
+    const credits = Number(course.credits || 0);
+    if (course.code) lookup.set(String(course.code).toLowerCase(), credits);
+    if (course.name) lookup.set(String(course.name).toLowerCase(), credits);
+  });
+  return lookup;
+};
 
 const dashboard = asyncHandler(async (req, res) => {
   const student = await Student.findOne({ userId: req.user._id }).lean();
@@ -39,6 +51,22 @@ const dashboard = asyncHandler(async (req, res) => {
       .sort({ date: -1, createdAt: -1 })
       .lean()
   ]);
+
+  const marksRecords = await Marks.find({ studentId: student._id })
+    .sort({ semester: 1, subject: 1 })
+    .lean();
+
+  const semesters = [...new Set(marksRecords.map((row) => row.semester).filter(Boolean))].sort((a, b) => a - b);
+  const cgpaSummary = await Promise.all(
+    semesters.map(async (semester) => {
+      const semesterMarks = marksRecords.filter((row) => row.semester === semester);
+      const semesterCourses = await Course.find({ semester }).select('code name credits').lean();
+      return {
+        semester,
+        cgpa: calculateCgpa(semesterMarks, buildCreditsLookup(semesterCourses))
+      };
+    })
+  );
 
   const lastWeekAttendance = attendanceRecords.slice(0, 7).map((record) => {
     const status = isPresentStatus(record.status) ? 'Present' : 'Absent';
@@ -95,7 +123,10 @@ const dashboard = asyncHandler(async (req, res) => {
     student,
     announcements,
     lastWeekAttendance,
-    courseAttendance
+    courseAttendance,
+    marks: marksRecords,
+    cgpaSummary,
+    overallCgpa: Number(student.cgpa || 0)
   });
 });
 
@@ -248,7 +279,7 @@ const registerCourse = asyncHandler(async (req, res) => {
   const { courseId } = req.validated.body;
 
   const course = await Course.findById(courseId).lean();
-  if (!course || course.branch !== student.branch || course.semester !== student.semester) {
+  if (course?.branch !== student.branch || course?.semester !== student.semester) {
     return res.status(400).render('errors/400', { title: 'Validation Error', errors: [{ message: 'Invalid course selection' }] });
   }
 

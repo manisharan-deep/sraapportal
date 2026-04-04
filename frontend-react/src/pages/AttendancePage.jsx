@@ -82,12 +82,27 @@ export default function AttendancePage() {
         columns={[
           { key: 'fullName', label: 'Student' },
           { key: 'hallTicketNumber', label: 'Roll No' },
-          { key: 'status', label: 'Status', render: (row) => (
-            <select value={statusMap[row.studentId] || 'Present'} onChange={(e) => setStatus(row.studentId, e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2">
-              <option value="Present">Present</option>
-              <option value="Absent">Absent</option>
-            </select>
-          ) }
+          { key: 'status', label: 'Status', render: (row) => {
+            const current = statusMap[row.studentId] || 'Present';
+            return (
+              <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setStatus(row.studentId, 'Present')}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${current === 'Present' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Present
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatus(row.studentId, 'Absent')}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${current === 'Absent' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Absent
+                </button>
+              </div>
+            );
+          } }
         ]}
         rows={rows}
       />
