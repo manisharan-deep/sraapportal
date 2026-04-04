@@ -56,6 +56,8 @@ const dashboard = asyncHandler(async (req, res) => {
     .sort({ semester: 1, subject: 1 })
     .lean();
 
+  const completedSubjects = marksRecords.filter((row) => String(row.grade || '').toLowerCase() !== 'fail').length;
+
   const semesters = [...new Set(marksRecords.map((row) => row.semester).filter(Boolean))].sort((a, b) => a - b);
   const cgpaSummary = await Promise.all(
     semesters.map(async (semester) => {
@@ -126,7 +128,9 @@ const dashboard = asyncHandler(async (req, res) => {
     courseAttendance,
     marks: marksRecords,
     cgpaSummary,
-    overallCgpa: Number(student.cgpa || 0)
+    overallCgpa: Number(student.cgpa || 0),
+    completedSubjects,
+    semesterLabel: student.yearSem || `Semester ${student.semester || '-'}`
   });
 });
 

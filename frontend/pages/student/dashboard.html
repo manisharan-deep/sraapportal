@@ -164,15 +164,15 @@
       border-bottom: 1px solid rgba(255,255,255,0.16);
     }
     .nav-item {
-      color: white;
+      color: #f8fafc;
       padding: 12px 15px;
       text-decoration: none;
       font-size: 14px;
       cursor: pointer;
       position: relative;
       white-space: nowrap;
+      transition: transform 0.2s ease, background 0.2s ease;
     }
-    .nav-item { transition: transform 0.2s ease, background 0.2s ease; }
     .nav-item:hover {
       background: rgba(255,255,255,0.12);
       transform: translateY(-1px);
@@ -200,13 +200,11 @@
     }
     .dropdown a:hover { background: #f0f0f0; }
     .dropdown a.view-link:hover {
-      background: #4caf50;
-      color: white;
+      background: #2f855a;
       font-weight: 600;
     }
     .dropdown a.edit-link:hover {
-      background: #ff9800;
-      color: white;
+      background: #b45309;
       font-weight: 600;
     }
     .nav-item:hover .dropdown { display: block; }
@@ -330,8 +328,8 @@
       border: 1px solid rgba(255,255,255,0.32);
       border-radius: 10px;
       font-size: 14px;
-      background: rgba(255,255,255,0.14);
-      color: #ffffff;
+      background: rgba(255,255,255,0.92);
+      color: #0f172a;
     }
     .calc-grid button {
       height: 38px;
@@ -352,10 +350,10 @@
     .calc-result {
       margin-top: 12px;
       font-size: 14px;
-      color: #f4fbff;
+      color: #e2f2ff;
       line-height: 1.5;
       padding: 10px;
-      background: rgba(255,255,255,0.13);
+      background: rgba(2, 20, 52, 0.76);
       border: 1px solid rgba(255,255,255,0.24);
       border-radius: 10px;
       display: none;
@@ -388,7 +386,7 @@
     }
     .table-header {
       background: rgba(4, 22, 66, 0.62);
-      color: #ffffff;
+      color: #f8fafc;
       padding: 15px;
       font-size: 16px;
       font-weight: 600;
@@ -404,11 +402,11 @@
       border-bottom: 1px solid rgba(255,255,255,0.12);
       font-size: 14px;
     }
-    th { background: rgba(255,255,255,0.1); font-weight: 600; color: #eaf7ff; }
+    th { background: rgba(2, 20, 52, 0.7); font-weight: 600; color: #f8fafc; }
     td { color: #eff8ff; }
     td a { color: #95dcff; text-decoration: none; }
     td a:hover { text-decoration: underline; }
-    .attendance-red { background: #f44336; color: white; font-weight: 600; padding: 4px 8px; border-radius: 3px; }
+    .attendance-red { background: #b91c1c; color: #ffffff; font-weight: 600; padding: 4px 8px; border-radius: 3px; }
     .attendance-status-badge {
       display: inline-block;
       margin-left: 8px;
@@ -813,8 +811,8 @@
       <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
     <div class="info-card card-blue">
-      <h3><span id="coursesCount">32</span> | <span id="backlogsCount">1</span></h3>
-      <p>No of Courses | Total Backlogs</p>
+      <h3><span id="completedSubjects">0</span> | <span id="backlogsCount">0</span></h3>
+      <p>Subjects Completed | Total Backlogs</p>
       <button class="ripple-btn" onclick="window.location.href='edit-academics.html'">More Info ➜</button>
     </div>
   </div>

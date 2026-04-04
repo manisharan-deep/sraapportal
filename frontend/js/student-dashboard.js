@@ -96,7 +96,7 @@ function initPointerEffects() {
     spotlight.style.top = `${pointerY}px`;
 
     parallaxNodes.forEach((node) => {
-      const depth = Number(node.getAttribute('data-depth') || 16);
+      const depth = Number(node.dataset.depth || 16);
       node.style.transform = `translate3d(${xNorm * depth * 0.35}px, ${yNorm * depth * 0.35}px, 0)`;
     });
 
@@ -164,7 +164,7 @@ function setProfileIcon(student) {
   const icon = document.getElementById('profileIcon');
   if (!icon) return;
 
-  const activePhoto = (student && student.profilePhoto) ? student.profilePhoto : '';
+  const activePhoto = student?.profilePhoto || '';
 
   if (activePhoto) {
     icon.style.backgroundImage = `url(${activePhoto})`;
@@ -184,7 +184,7 @@ function setProfileIcon(student) {
 document.getElementById('logoutBtn').addEventListener('click', (e) => {
   e.preventDefault();
   removeToken();
-  window.location.href = '../../login.html?role=STUDENT';
+  globalThis.location.href = '../../login.html?role=STUDENT';
 });
 
 async function loadDashboard() {
@@ -203,14 +203,14 @@ async function loadDashboard() {
       setProfileIcon(student);
       
       // Info cards - only show actual data
-      setText('yearSem', student.yearSem || '-');
+      setText('yearSem', data.semesterLabel || student.yearSem || `Semester ${student.semester || '-'}`);
       setText('attendancePercent', formatPercent(student.attendancePercentage));
       setText('mentorName', student.mentorName || '-');
       setText('mentorContact', student.mentorContact || '-');
       setText('alphaCoins', student.alphaCoins || '0');
       setText('sigmaCoins', student.sigmaCoins || '0');
       setText('cgpa', student.cgpa || '-');
-      setText('coursesCount', student.coursesCount || '0');
+      setText('completedSubjects', data.completedSubjects ?? student.coursesCount ?? '0');
       setText('backlogsCount', student.backlogs || '0');
       renderAnnouncements(data.announcements || []);
       applyMetrics(student);
@@ -282,7 +282,7 @@ function showEmptyState() {
   setText('alphaCoins', '0');
   setText('sigmaCoins', '0');
   setText('cgpa', '-');
-  setText('coursesCount', '0');
+  setText('completedSubjects', '0');
   setText('backlogsCount', '0');
   renderAnnouncements([]);
   applyMetrics({ attendancePercentage: 0, cgpa: 0, coursesCount: 0, backlogs: 0 });
