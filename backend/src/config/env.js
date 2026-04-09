@@ -1,9 +1,16 @@
 const dotenv = require('dotenv');
+const crypto = require('node:crypto');
 
 dotenv.config();
 
 // Accept common provider names for the MongoDB connection variable.
 const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.DATABASE_URL;
+
+const createRuntimeSecret = (name) => {
+  const value = `runtime-${crypto.randomBytes(24).toString('hex')}`;
+  console.warn(`[env] Missing ${name}; generated temporary runtime value.`);
+  return value;
+};
 
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -12,11 +19,11 @@ const env = {
   mongoUri,
   redisHost: process.env.REDIS_HOST || 'localhost',
   redisPort: Number(process.env.REDIS_PORT || 6379),
-  jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
+  jwtAccessSecret: process.env.JWT_ACCESS_SECRET || createRuntimeSecret('JWT_ACCESS_SECRET'),
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || createRuntimeSecret('JWT_REFRESH_SECRET'),
   jwtAccessExpires: process.env.JWT_ACCESS_EXPIRES || '15m',
   jwtRefreshExpires: process.env.JWT_REFRESH_EXPIRES || '7d',
-  sessionSecret: process.env.SESSION_SECRET,
+  sessionSecret: process.env.SESSION_SECRET || createRuntimeSecret('SESSION_SECRET'),
   corsOrigin: process.env.CORS_ORIGIN || '*',
   smtpHost: process.env.SMTP_HOST,
   smtpPort: Number(process.env.SMTP_PORT || 2525),
@@ -37,17 +44,8 @@ const env = {
   fast2SmsSenderId: process.env.FAST2SMS_SENDER_ID || 'FSTSMS'
 };
 
-const required = {
-  mongoUri: 'MONGO_URI (or MONGODB_URI / DATABASE_URL)',
-  jwtAccessSecret: 'JWT_ACCESS_SECRET',
-  jwtRefreshSecret: 'JWT_REFRESH_SECRET',
-  sessionSecret: 'SESSION_SECRET'
-};
-
-for (const [key, displayName] of Object.entries(required)) {
-  if (!env[key]) {
-    throw new Error(`Missing required env variable: ${displayName}`);
-  }
+if (!env.mongoUri) {
+  console.warn('[env] Missing MONGO_URI (or MONGODB_URI / DATABASE_URL); database connection will retry in background.');
 }
 
 module.exports = env;
