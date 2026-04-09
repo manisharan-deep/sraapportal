@@ -23,19 +23,22 @@ const getStaffId = async (userId) => {
   return staff ? staff._id : null;
 };
 
-const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const csvEscape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
 
 const toObjectId = (value) => {
-  try {
-    return new mongoose.Types.ObjectId(String(value));
-  } catch (_error) {
-    return null;
-  }
+  const normalized = String(value || '').trim();
+  if (!normalized || !mongoose.Types.ObjectId.isValid(normalized)) return null;
+  return new mongoose.Types.ObjectId(normalized);
 };
 
 const recalculateStudentAttendancePercentages = async (studentIds = []) => {
-  const objectIds = [...new Set(studentIds.map(toObjectId).filter(Boolean).map(String))]
-    .map((id) => new mongoose.Types.ObjectId(id));
+  const uniqueObjectIdMap = new Map(
+    studentIds
+      .map(toObjectId)
+      .filter(Boolean)
+      .map((id) => [String(id), id])
+  );
+  const objectIds = [...uniqueObjectIdMap.values()];
 
   if (!objectIds.length) return;
 
@@ -93,7 +96,9 @@ const normalizeSemester = (value, fallback = 1) => {
   return parsed;
 };
 
-const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegex = (value) => String(value || '').replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+const sortTextAsc = (a, b) => String(a).localeCompare(String(b), 'en', { sensitivity: 'base', numeric: true });
 
 const buildDepartmentFilter = (department) => {
   const raw = String(department || '').trim();
@@ -152,6 +157,105 @@ const sendAttendanceSmsDirect = async ({ studentId, studentName, status, date })
     recipients,
     customMessage: smsText
   });
+};
+
+const buildStudentLookupFilter = ({ normalizedHallticket, normalizedBatch, normalizedDepartment }) => {
+  const studentFilter = {
+    $or: normalizedHallticket
+      ? [
+          { hallticket: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } },
+          { rollNumber: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } }
+        ]
+      : []
+  };
+
+  if (normalizedBatch) studentFilter.batch = normalizedBatch;
+  const departmentFilter = buildDepartmentFilter(normalizedDepartment);
+  if (departmentFilter) studentFilter.branch = departmentFilter;
+  return studentFilter;
+};
+
+const findStudentsForMarkAttendance = async ({ studentId, normalizedHallticket, normalizedBatch, normalizedDepartment }) => {
+  if (studentId) {
+    const studentById = await Student.findById(studentId)
+      .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
+      .lean();
+    return studentById ? [studentById] : [];
+  }
+
+  const studentFilter = buildStudentLookupFilter({ normalizedHallticket, normalizedBatch, normalizedDepartment });
+  return Student.find(studentFilter)
+    .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
+    .limit(2)
+    .lean();
+};
+
+const createAttendanceRecord = async ({
+  student,
+  normalizedHallticket,
+  normalizedDepartment,
+  normalizedBatch,
+  normalizedSubject,
+  normalizedDate,
+  normalizedStatus,
+  facultyId
+}) => {
+  const hallTicketNumber = normalizeNonEmptyString(
+    student.rollNumber || student.hallticket || normalizedHallticket,
+    normalizedHallticket
+  );
+  if (!hallTicketNumber) {
+    return { error: { status: 400, message: 'Hall ticket number is required to mark attendance for this student' } };
+  }
+
+  const studentName = normalizeNonEmptyString(student.name, 'Student');
+  const attendanceDepartment = normalizeNonEmptyString(student.branch || normalizedDepartment, 'GENERAL');
+  const attendanceBatch = normalizeNonEmptyString(student.batch || normalizedBatch, 'UNASSIGNED');
+  const attendanceSemester = normalizeSemester(student.semester, 1);
+
+  try {
+    const attendanceRecord = await Attendance.create({
+      studentId: student._id,
+      hallTicketNumber,
+      name: studentName,
+      studentName,
+      department: attendanceDepartment,
+      batch: attendanceBatch,
+      semester: attendanceSemester,
+      subject: normalizedSubject,
+      date: normalizedDate,
+      status: normalizedStatus,
+      facultyId,
+      markedBy: facultyId
+    });
+    return { attendanceRecord };
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      return { error: { status: 409, message: 'Attendance already marked for this subject and date' } };
+    }
+    throw error;
+  }
+};
+
+const sendDirectSmsFallback = async ({ queueResult, studentId, studentName, status, date }) => {
+  if (queueResult.queued) return null;
+
+  try {
+    const directResult = await sendAttendanceSmsDirect({
+      studentId,
+      studentName,
+      status,
+      date
+    });
+    return {
+      sent: Array.isArray(directResult.sent) ? directResult.sent.length : 0,
+      failed: Array.isArray(directResult.failed) ? directResult.failed.length : 0,
+      skipped: Boolean(directResult.skipped)
+    };
+  } catch (error) {
+    logger.error('Direct SMS fallback failed', { studentId, error: error.message });
+    return { sent: 0, failed: 0, skipped: true };
+  }
 };
 
 const syncStudentAttendanceHistory = async ({ studentId, subject, date, status }) => {
@@ -251,7 +355,7 @@ const markBulkAttendance = async (req, res) => {
     return res.status(404).json({ message: 'Staff profile not found' });
   }
 
-  const studentIds = records.map((r) => r && r.studentId).filter(Boolean);
+  const studentIds = records.map((r) => r?.studentId).filter(Boolean);
   const studentDocs = studentIds.length
     ? await Student.find({ _id: { $in: studentIds } })
       .select('_id name rollNumber branch semester batch phone studentPhone parentPhone fatherMobile motherMobile')
@@ -260,7 +364,7 @@ const markBulkAttendance = async (req, res) => {
   const studentById = new Map(studentDocs.map((s) => [String(s._id), s]));
 
   const ops = records
-    .filter((r) => r && r.studentId && r.status)
+    .filter((r) => r?.studentId && r?.status)
     .map((record) => {
       const dbStudent = studentById.get(String(record.studentId));
       const studentName = String(record.name || record.studentName || dbStudent?.name || '').trim();
@@ -387,30 +491,12 @@ const markAttendance = async (req, res) => {
     return res.status(404).json({ message: 'Staff profile not found' });
   }
 
-  let students = [];
-  if (studentId) {
-    const studentById = await Student.findById(studentId)
-      .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
-      .lean();
-    students = studentById ? [studentById] : [];
-  } else {
-    const studentFilter = {
-      $or: normalizedHallticket
-        ? [
-            { hallticket: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } },
-            { rollNumber: { $regex: `^${escapeRegex(normalizedHallticket)}$`, $options: 'i' } }
-          ]
-        : []
-    };
-    if (normalizedBatch) studentFilter.batch = normalizedBatch;
-    const departmentFilter = buildDepartmentFilter(normalizedDepartment);
-    if (departmentFilter) studentFilter.branch = departmentFilter;
-
-    students = await Student.find(studentFilter)
-      .select('_id name rollNumber hallticket branch semester batch phone studentPhone fatherMobile motherMobile parentPhone subjects')
-      .limit(2)
-      .lean();
-  }
+  const students = await findStudentsForMarkAttendance({
+    studentId,
+    normalizedHallticket,
+    normalizedBatch,
+    normalizedDepartment
+  });
 
   if (!students.length) {
     return res.status(404).json({ message: 'Student not found for provided details' });
@@ -442,43 +528,21 @@ const markAttendance = async (req, res) => {
     });
   }
 
-  const hallTicketNumber = normalizeNonEmptyString(
-    student.rollNumber || student.hallticket || normalizedHallticket,
-    normalizedHallticket
-  );
-  const studentName = normalizeNonEmptyString(student.name, 'Student');
-  const attendanceDepartment = normalizeNonEmptyString(student.branch || normalizedDepartment, 'GENERAL');
-  const attendanceBatch = normalizeNonEmptyString(student.batch || normalizedBatch, 'UNASSIGNED');
-  const attendanceSemester = normalizeSemester(student.semester, 1);
+  const createResult = await createAttendanceRecord({
+    student,
+    normalizedHallticket,
+    normalizedDepartment,
+    normalizedBatch,
+    normalizedSubject,
+    normalizedDate,
+    normalizedStatus,
+    facultyId
+  });
 
-  if (!hallTicketNumber) {
-    return res.status(400).json({
-      message: 'Hall ticket number is required to mark attendance for this student'
-    });
+  if (createResult.error) {
+    return res.status(createResult.error.status).json({ message: createResult.error.message });
   }
-
-  let attendanceRecord;
-  try {
-    attendanceRecord = await Attendance.create({
-      studentId: student._id,
-      hallTicketNumber,
-      name: studentName,
-      studentName,
-      department: attendanceDepartment,
-      batch: attendanceBatch,
-      semester: attendanceSemester,
-      subject: normalizedSubject,
-      date: normalizedDate,
-      status: normalizedStatus,
-      facultyId,
-      markedBy: facultyId
-    });
-  } catch (error) {
-    if (isDuplicateKeyError(error)) {
-      return res.status(409).json({ message: 'Attendance already marked for this subject and date' });
-    }
-    throw error;
-  }
+  const attendanceRecord = createResult.attendanceRecord;
 
   await syncStudentAttendanceHistory({
     studentId: student._id,
@@ -498,25 +562,13 @@ const markAttendance = async (req, res) => {
     }
   );
 
-  let fallbackSummary = null;
-  if (!queueResult.queued) {
-    try {
-      const directResult = await sendAttendanceSmsDirect({
-        studentId: String(student._id),
-        studentName: student.name,
-        status: normalizedStatus,
-        date: normalizedDate
-      });
-      fallbackSummary = {
-        sent: Array.isArray(directResult.sent) ? directResult.sent.length : 0,
-        failed: Array.isArray(directResult.failed) ? directResult.failed.length : 0,
-        skipped: Boolean(directResult.skipped)
-      };
-    } catch (error) {
-      logger.error('Direct SMS fallback failed', { studentId: String(student._id), error: error.message });
-      fallbackSummary = { sent: 0, failed: 0, skipped: true };
-    }
-  }
+  const fallbackSummary = await sendDirectSmsFallback({
+    queueResult,
+    studentId: String(student._id),
+    studentName: student.name,
+    status: normalizedStatus,
+    date: normalizedDate
+  });
 
   return res.status(201).json({
     message: 'Attendance saved successfully',
@@ -627,10 +679,10 @@ const getAttendanceStudentOptions = async (req, res) => {
     .limit(200)
     .lean();
 
-  const batchOptions = [...new Set(students.map((s) => s.batch).filter(Boolean))].sort();
-  const departmentOptions = [...new Set(students.map((s) => s.branch).filter(Boolean))].sort();
+  const batchOptions = [...new Set(students.map((s) => s.batch).filter(Boolean))].sort(sortTextAsc);
+  const departmentOptions = [...new Set(students.map((s) => s.branch).filter(Boolean))].sort(sortTextAsc);
 
-  let subjectOptions = [...new Set(students.flatMap((s) => Array.isArray(s.subjects) ? s.subjects : []).filter(Boolean))].sort();
+  let subjectOptions = [...new Set(students.flatMap((s) => Array.isArray(s.subjects) ? s.subjects : []).filter(Boolean))].sort(sortTextAsc);
 
   if (!subjectOptions.length && students.length) {
     const branchValues = [...new Set(students.map((s) => s.branch).filter(Boolean))];
@@ -639,7 +691,7 @@ const getAttendanceStudentOptions = async (req, res) => {
     if (branchValues.length) courseFilter.branch = { $in: branchValues };
     if (semValues.length) courseFilter.semester = { $in: semValues };
     const courses = await Course.find(courseFilter).select('name').lean();
-    subjectOptions = [...new Set(courses.map((course) => course.name).filter(Boolean))].sort();
+    subjectOptions = [...new Set(courses.map((course) => course.name).filter(Boolean))].sort(sortTextAsc);
   }
 
   return res.json({
