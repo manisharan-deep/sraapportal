@@ -1,0 +1,12 @@
+#!/bin/sh
+# Block committing common secret files.
+
+disallowed_files=$(git diff --cached --name-only | grep -E '\.env$|\.pem$|\.key$|id_rsa$')
+
+if [ -n "$disallowed_files" ]; then
+  echo "Error: Refusing to commit secret files:"
+  echo "$disallowed_files"
+  exit 1
+fi
+
+exit 0
