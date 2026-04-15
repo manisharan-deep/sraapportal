@@ -6,6 +6,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { signAccessToken, signRefreshToken } = require('../utils/tokens');
 const env = require('../config/env');
 const fullNameRegex = /^[A-Za-z\s.'-]+$/;
+const escapeForRegex = (value) => value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 const register = asyncHandler(async (req, res) => {
   const { fullName, email, role, password, enrollmentNumber, username } = req.body;
@@ -89,10 +90,17 @@ const login = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'identifier, password and valid role are required' });
   }
 
-  const query = { role };
-  const exactCaseInsensitive = new RegExp(`^${identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-  if (role === 'STUDENT') query.enrollmentNumber = exactCaseInsensitive;
-  else query.username = exactCaseInsensitive;
+  const rolePattern = new RegExp(`^${escapeForRegex(role)}$`, 'i');
+  const query = { role: rolePattern };
+  const exactCaseInsensitive = new RegExp(`^${escapeForRegex(identifier)}$`, 'i');
+  if (role === 'STUDENT') {
+    query.enrollmentNumber = exactCaseInsensitive;
+  } else {
+    query.$or = [
+      { username: exactCaseInsensitive },
+      { email: exactCaseInsensitive }
+    ];
+  }
 
   const user = await User.findOne(query);
   if (!user || !(await user.comparePassword(password))) {
