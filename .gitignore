@@ -1,20 +1,10 @@
-# Node dependencies
-node_modules/
-
-# Environment files
-.env
-.env.*
-
-# Build artifacts
-coverage/
-build/
-dist/
-
-# OS/editor files
+backend/node_modules
+backend/logs/*.log
+backend/.env
+.terraform
+*.tfstate
+*.tfstate.backup
 .DS_Store
-.idea/
-.vscode/
 
-
-#Ignore vscode AI rules
-.github\instructions\codacy.instructions.md
+# Ignore VS Code AI instruction file
+.github/instructions/codacy.instructions.md

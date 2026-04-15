@@ -1,6 +1,5 @@
-// Jest configuration for backend tests
 module.exports = {
-  testEnvironment: "node",
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
-  testTimeout: 20000
+  testEnvironment: 'node',
+  verbose: true,
+  testTimeout: 15000
 };
